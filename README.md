@@ -1,18 +1,19 @@
-# BookReaderCdb
-BoookReaderCdb can be used as normal UCI chess engine in chess GUI like Arena.
-This program reads chess openings moves from the server <a href="https://www.chessdb.cn/cloudbookc_api_en.html">www.chessdb.cn</a>.
+# BookReaderBin
+BoookReaderBin can be used as normal UCI chess engine in chess GUI like Arena.
+This program reads chess openings moves from a polyglot openig book with bin extension.
 To use this program you need install  <a href="https://dotnet.microsoft.com/download/dotnet-framework/net48">.NET Framework 4.8</a>
 
 ## Parameters
 
+**-bn** polyglot opening Book file Name<br/>
 **-ef** chess Engine File name<br/>
 **-ea** chess Engine Arguments<br/>
 
 ### Examples
 
--ef stockfish.exe<br/>
-stockfish.exe
+-bn book.bin -ef stockfish.exe<br/>
+book.bin -ef stockfish.exe
 
-The program will first try to find move in <a href="https://www.chessdb.cn/cloudbookc_api_en.html">www.chessdb.cn</a> database, and if it doesn't find any move in it, it will run a chess engine called stockfish.exe 
+The program will first try to find move in chess opening book named book.bin, and if it doesn't find any move in it, it will run a chess engine named stockfish.exe 
 
 
