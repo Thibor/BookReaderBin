@@ -219,9 +219,18 @@ namespace NSProgram
 		public void LoadFromFile(string path)
 		{
 			recList.Clear();
+			FileStream fs = null;
 			if (File.Exists(path))
 			{
-				FileStream fs = File.Open(path, FileMode.Open);
+				try
+				{
+					fs = File.Open(path, FileMode.Open, FileAccess.Read);
+				}
+				catch
+				{
+					fs = null;
+				}
+				if(fs != null)
 				using (BinaryReader reader = new BinaryReader(fs))
 				{
 					while (reader.BaseStream.Position != reader.BaseStream.Length)
