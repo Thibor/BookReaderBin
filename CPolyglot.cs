@@ -216,22 +216,33 @@ namespace NSProgram
 		public static CChess chess = new CChess();
 		readonly List<CRec> recList = new List<CRec>();
 
-		public void LoadFromFile(string fn)
+		public void LoadFromFile(string path)
 		{
 			recList.Clear();
-			int index = 0;
-			byte[] fileBytes = File.ReadAllBytes(fn);
-			int count = fileBytes.Length >> 4;
-			while (count-- > 0)
+			if (File.Exists(path))
 			{
-				CRec rec = new CRec();
-				rec.key = (ulong)fileBytes[index] << 56 | (ulong)fileBytes[index + 1] << 48 | (ulong)fileBytes[index + 2] << 40 | (ulong)fileBytes[index + 3] << 32 | (ulong)fileBytes[index + 4] << 24 | (ulong)fileBytes[index + 5] << 16 | (ulong)fileBytes[index + 6] << 8 | (ulong)fileBytes[index + 7];
-				index += 8;
-				rec.move = (ushort)(fileBytes[index] << 8 | fileBytes[index + 1]);
-				index += 2;
-				rec.weight = (ushort)(fileBytes[index] << 8 | fileBytes[index + 1]);
-				index += 6;
-				recList.Add(rec);
+				FileStream fs = File.Open(path, FileMode.Open);
+				using (BinaryReader reader = new BinaryReader(fs))
+				{
+					while (reader.BaseStream.Position != reader.BaseStream.Length)
+					{
+						CRec rec = new CRec();
+						rec.key = reader.ReadUInt64();
+						byte[] bytes = BitConverter.GetBytes(rec.key);
+						Array.Reverse(bytes);
+						rec.key = BitConverter.ToUInt64(bytes, 0);
+						rec.move = reader.ReadUInt16();
+						bytes = BitConverter.GetBytes(rec.move);
+						Array.Reverse(bytes);
+						rec.move = BitConverter.ToUInt16(bytes, 0);
+						rec.weight = reader.ReadUInt16();
+						bytes = BitConverter.GetBytes(rec.weight);
+						Array.Reverse(bytes);
+						rec.weight = BitConverter.ToUInt16(bytes, 0);
+						recList.Add(rec);
+						reader.ReadUInt32();
+					}
+				}
 			}
 		}
 
