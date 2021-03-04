@@ -242,8 +242,13 @@ namespace NSProgram
 			if (fs != null)
 				using (BinaryWriter writer = new BinaryWriter(fs))
 				{
+					ulong lastHsh = 0;
+					ushort lastMove = 0;
+					SortHash();
 					foreach (CRec rec in recList)
 					{
+						if ((rec.key == lastHsh) && (rec.move == lastMove))
+							continue;
 						byte[] bytes = BitConverter.GetBytes(rec.key);
 						Array.Reverse(bytes);
 						writer.Write(BitConverter.ToUInt64(bytes, 0));
@@ -254,6 +259,8 @@ namespace NSProgram
 						Array.Reverse(bytes);
 						writer.Write(BitConverter.ToUInt16(bytes, 0));
 						writer.Write(rec.learn);
+						lastHsh = rec.key;
+						lastMove = rec.move;
 					}
 				}
 		}
@@ -425,6 +432,18 @@ namespace NSProgram
 			ulong hash = GetHash();
 			List<CRec> rl = GetRecList(hash);
 			return GetMove(rl);
+		}
+
+		public void SortHash()
+		{
+			recList.Sort(delegate (CRec r1, CRec r2)
+			{
+				if (r1.key > r2.key)
+					return 1;
+				if (r1.key < r2.key)
+					return -1;
+				return r1.move - r2.move;
+			});
 		}
 
 	}

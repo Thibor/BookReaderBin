@@ -94,6 +94,9 @@ namespace NSProgram
 						case "save":
 							book.SaveToFile(Uci.GetValue(2, 0));
 							break;
+						default:
+							Console.WriteLine($"Unknown command [{Uci.tokens[1]}]");
+							break;
 					}
 					continue;
 				}
