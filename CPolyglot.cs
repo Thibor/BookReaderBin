@@ -10,6 +10,7 @@ namespace NSProgram
 		public ulong key;
 		public ushort move;
 		public ushort weight;
+		public uint learn;
 	}
 
 	class CPolyglot
@@ -212,19 +213,64 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
+		public string fileShortName = "book";
 		public const string defExt = ".bin";
 		public static CChess chess = new CChess();
 		readonly List<CRec> recList = new List<CRec>();
 
-		public bool LoadFromFile(string path)
+		public void Clear()
 		{
 			recList.Clear();
+			ShowCountMoves();
+		}
+
+		public bool LoadFromFile(string path)
+		{
+			fileShortName = Path.GetFileNameWithoutExtension(path);
+			recList.Clear();
+			return FileAdd(path);
+		}
+
+		public void SaveToFile(string path)
+		{
+			FileStream fs = null;
+			try
+			{
+				fs = File.Open(path, FileMode.Create, FileAccess.Write);
+			}
+			catch { }
+			if (fs != null)
+				using (BinaryWriter writer = new BinaryWriter(fs))
+				{
+					foreach (CRec rec in recList)
+					{
+						byte[] bytes = BitConverter.GetBytes(rec.key);
+						Array.Reverse(bytes);
+						writer.Write(BitConverter.ToUInt64(bytes, 0));
+						bytes = BitConverter.GetBytes(rec.move);
+						Array.Reverse(bytes);
+						writer.Write(BitConverter.ToUInt16(bytes, 0));
+						bytes = BitConverter.GetBytes(rec.weight);
+						Array.Reverse(bytes);
+						writer.Write(BitConverter.ToUInt16(bytes, 0));
+						writer.Write(rec.learn);
+					}
+				}
+		}
+
+		void ShowCountMoves()
+		{
+			Console.WriteLine($"info string book {recList.Count:N0} moves");
+		}
+
+		public bool FileAdd(string path)
+		{
 			if (File.Exists(path))
 			{
 				FileStream fs = null;
 				try
 				{
-					fs = File.Open(path, FileMode.Open, FileAccess.Read,FileShare.Read);
+					fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
 				}
 				catch { }
 				if (fs != null)
@@ -246,10 +292,10 @@ namespace NSProgram
 							Array.Reverse(bytes);
 							rec.weight = BitConverter.ToUInt16(bytes, 0);
 							recList.Add(rec);
-							reader.ReadUInt32();
+							rec.learn = reader.ReadUInt32();
 						}
-						Console.WriteLine($"info string book {recList.Count:N0} moves");
 					}
+				ShowCountMoves();
 				return true;
 			}
 			return false;

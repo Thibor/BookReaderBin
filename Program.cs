@@ -49,7 +49,6 @@ namespace NSProgram
 			string bookName = String.Join(" ", listBn);
 			string engineName = String.Join(" ", listEf);
 			string arguments = String.Join(" ", listEa);
-			book.LoadFromFile(bookName);
 			Process myProcess = new Process();
 			if (File.Exists(engineName))
 			{
@@ -63,24 +62,37 @@ namespace NSProgram
 			else
 			{
 				if (engineName != "")
-					Console.WriteLine("info string missing engine");
+					Console.WriteLine($"info string missing engine  [{engineName}]");
 				engineName = "";
 			}
 			if (!book.LoadFromFile(bookName))
 				if (!book.LoadFromFile($"{bookName}{CPolyglot.defExt}"))
-					Console.WriteLine($"info string missing book {bookName}");
+					Console.WriteLine($"info string missing book [{bookName}]");
 			while (true)
 			{
 				string msg = Console.ReadLine();
 				Uci.SetMsg(msg);
+				if (Uci.command == "help")
+				{
+					Console.WriteLine("book add [filename].[bin] - add moves to the book");
+					Console.WriteLine("book save [filename].[bin] - save book to the file");
+					Console.WriteLine("book clear - clear all moves from the book");
+					Console.WriteLine("book info - show information about the book");
+					continue;
+				}
 				if (Uci.command == "book")
 				{
 					switch (Uci.tokens[1])
 					{
-						case "load":
-							string fn = Uci.GetValue(2, 0);
-							if(!book.LoadFromFile(fn))
+						case "clear":
+							book.Clear();
+							break;
+						case "add":
+							if (!book.FileAdd(Uci.GetValue(2, 0)))
 								Console.WriteLine("File not found");
+							break;
+						case "save":
+							book.SaveToFile(Uci.GetValue(2, 0));
 							break;
 					}
 					continue;
