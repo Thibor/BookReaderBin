@@ -14,8 +14,8 @@ namespace NSProgram
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 			CUci Uci = new CUci();
-			CPolyglot polyglot = new CPolyglot();
-			CChess Chess = CPolyglot.chess;
+			CPolyglot book = new CPolyglot();
+			CChess chess = CPolyglot.chess;
 			string ax = "-bn";
 			List<string> listBn = new List<string>();
 			List<string> listEf = new List<string>();
@@ -46,15 +46,15 @@ namespace NSProgram
 						break;
 				}
 			}
-			string book = String.Join(" ", listBn);
-			string engine = String.Join(" ", listEf);
+			string bookName = String.Join(" ", listBn);
+			string engineName = String.Join(" ", listEf);
 			string arguments = String.Join(" ", listEa);
-			polyglot.LoadFromFile(book);
+			book.LoadFromFile(bookName);
 			Process myProcess = new Process();
-			if (File.Exists(engine))
+			if (File.Exists(engineName))
 			{
-				myProcess.StartInfo.FileName = engine;
-				myProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engine);
+				myProcess.StartInfo.FileName = engineName;
+				myProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engineName);
 				myProcess.StartInfo.UseShellExecute = false;
 				myProcess.StartInfo.RedirectStandardInput = true;
 				myProcess.StartInfo.Arguments = arguments;
@@ -62,53 +62,54 @@ namespace NSProgram
 			}
 			else
 			{
-				if (engine != "")
+				if (engineName != "")
 					Console.WriteLine("info string missing engine");
-				engine = "";
+				engineName = "";
 			}
-
+			if (!book.LoadFromFile(bookName))
+				if (!book.LoadFromFile($"{bookName}{CPolyglot.defExt}"))
+					Console.WriteLine($"info string missing book {bookName}");
 			while (true)
 			{
 				string msg = Console.ReadLine();
 				Uci.SetMsg(msg);
-				if ((Uci.command != "go") && (engine != ""))
+				if (Uci.command == "book")
+				{
+					switch (Uci.tokens[1])
+					{
+						case "load":
+							string fn = Uci.GetValue(2, 0);
+							if(!book.LoadFromFile(fn))
+								Console.WriteLine("File not found");
+							break;
+					}
+					continue;
+				}
+				if ((Uci.command != "go") && (engineName != ""))
 					myProcess.StandardInput.WriteLine(msg);
 				switch (Uci.command)
 				{
 					case "position":
-						string fen = "";
-						int lo = Uci.GetIndex("fen", 0);
-						int hi = Uci.GetIndex("moves", Uci.tokens.Length);
-						if (lo > 0)
+						string fen = Uci.GetValue("fen", "moves");
+						chess.SetFen(fen);
+						int lo = Uci.GetIndex("moves", 0);
+						if (lo++ > 0)
 						{
-							if (lo > hi)
-								hi = Uci.tokens.Length;
-							for (int n = lo; n < hi; n++)
-							{
-								if (n > lo)
-									fen += ' ';
-								fen += Uci.tokens[n];
-							}
-						}
-						Chess.SetFen(fen);
-						lo = Uci.GetIndex("moves", 0);
-						hi = Uci.GetIndex("fen", Uci.tokens.Length);
-						if (lo > 0)
-						{
-							if (lo > hi)
+							int hi = Uci.GetIndex("fen", Uci.tokens.Length);
+							if (hi < lo)
 								hi = Uci.tokens.Length;
 							for (int n = lo; n < hi; n++)
 							{
 								string m = Uci.tokens[n];
-								Chess.MakeMove(Chess.UmoToEmo(m));
+								chess.MakeMove(m);
 							}
 						}
 						break;
 					case "go":
-						string move = polyglot.GetMove();
+						string move = book.GetMove();
 						if (move != String.Empty)
 							Console.WriteLine($"bestmove {move}");
-						else if (engine == "")
+						else if (engineName == "")
 							Console.WriteLine("enginemove");
 						else
 							myProcess.StandardInput.WriteLine(msg);

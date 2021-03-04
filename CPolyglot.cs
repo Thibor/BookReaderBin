@@ -212,47 +212,47 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
-
+		public const string defExt = ".bin";
 		public static CChess chess = new CChess();
 		readonly List<CRec> recList = new List<CRec>();
 
-		public void LoadFromFile(string path)
+		public bool LoadFromFile(string path)
 		{
 			recList.Clear();
-			FileStream fs = null;
 			if (File.Exists(path))
 			{
+				FileStream fs = null;
 				try
 				{
-					fs = File.Open(path, FileMode.Open, FileAccess.Read);
+					fs = File.Open(path, FileMode.Open, FileAccess.Read,FileShare.Read);
 				}
-				catch
-				{
-					fs = null;
-				}
-				if(fs != null)
-				using (BinaryReader reader = new BinaryReader(fs))
-				{
-					while (reader.BaseStream.Position != reader.BaseStream.Length)
+				catch { }
+				if (fs != null)
+					using (BinaryReader reader = new BinaryReader(fs))
 					{
-						CRec rec = new CRec();
-						rec.key = reader.ReadUInt64();
-						byte[] bytes = BitConverter.GetBytes(rec.key);
-						Array.Reverse(bytes);
-						rec.key = BitConverter.ToUInt64(bytes, 0);
-						rec.move = reader.ReadUInt16();
-						bytes = BitConverter.GetBytes(rec.move);
-						Array.Reverse(bytes);
-						rec.move = BitConverter.ToUInt16(bytes, 0);
-						rec.weight = reader.ReadUInt16();
-						bytes = BitConverter.GetBytes(rec.weight);
-						Array.Reverse(bytes);
-						rec.weight = BitConverter.ToUInt16(bytes, 0);
-						recList.Add(rec);
-						reader.ReadUInt32();
+						while (reader.BaseStream.Position != reader.BaseStream.Length)
+						{
+							CRec rec = new CRec();
+							rec.key = reader.ReadUInt64();
+							byte[] bytes = BitConverter.GetBytes(rec.key);
+							Array.Reverse(bytes);
+							rec.key = BitConverter.ToUInt64(bytes, 0);
+							rec.move = reader.ReadUInt16();
+							bytes = BitConverter.GetBytes(rec.move);
+							Array.Reverse(bytes);
+							rec.move = BitConverter.ToUInt16(bytes, 0);
+							rec.weight = reader.ReadUInt16();
+							bytes = BitConverter.GetBytes(rec.weight);
+							Array.Reverse(bytes);
+							rec.weight = BitConverter.ToUInt16(bytes, 0);
+							recList.Add(rec);
+							reader.ReadUInt32();
+						}
+						Console.WriteLine($"info string book {recList.Count:N0} moves");
 					}
-				}
+				return true;
 			}
+			return false;
 		}
 
 		int GetFirst(ulong hash)
