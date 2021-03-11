@@ -5,14 +5,6 @@ using NSChess;
 
 namespace NSProgram
 {
-	struct CRec
-	{
-		public ulong key;
-		public ushort move;
-		public ushort weight;
-		public uint learn;
-	}
-
 	class CPolyglot
 	{
 		readonly ulong[] Random64 = {
@@ -213,10 +205,10 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
-		public string fileShortName = "book";
+		public string fileShortName = "Book";
 		public const string defExt = ".bin";
-		public static CChess chess = new CChess();
-		readonly List<CRec> recList = new List<CRec>();
+		public static CChessExt chess = new CChessExt();
+		public CRecList recList = new CRecList();
 
 		public void Clear()
 		{
@@ -242,14 +234,16 @@ namespace NSProgram
 			if (fs != null)
 				using (BinaryWriter writer = new BinaryWriter(fs))
 				{
-					ulong lastHsh = 0;
-					ushort lastMove = 0;
-					SortHash();
+					CRec last = new CRec();
+					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
-						if ((rec.key == lastHsh) && (rec.move == lastMove))
-							continue;
-						byte[] bytes = BitConverter.GetBytes(rec.key);
+						if ((rec.hash == last.hash) && (rec.move == last.move))
+						{
+							fs.Position = fs.Length - 16;
+							rec.weight += last.weight;
+						}
+						byte[] bytes = BitConverter.GetBytes(rec.hash);
 						Array.Reverse(bytes);
 						writer.Write(BitConverter.ToUInt64(bytes, 0));
 						bytes = BitConverter.GetBytes(rec.move);
@@ -259,10 +253,49 @@ namespace NSProgram
 						Array.Reverse(bytes);
 						writer.Write(BitConverter.ToUInt16(bytes, 0));
 						writer.Write(rec.learn);
-						lastHsh = rec.key;
-						lastMove = rec.move;
+						last = rec;
 					}
 				}
+		}
+
+		public void SaveToFile()
+		{
+			SaveToFile($"{fileShortName}{defExt}");
+		}
+
+		public bool IsWinner(int index, int count)
+		{
+			return (index & 1) != (count & 1);
+		}
+
+		public void AddUci(string[] moves)
+		{
+			int count = moves.Length;
+			chess.SetFen();
+			for (int n = 0; n < moves.Length; n++)
+			{
+				string umo = moves[n];
+				if (IsWinner(n, count))
+				{
+					CRec rec = new CRec
+					{
+						hash = GetHash(),
+						move = UmoToBmo(umo)
+					};
+					recList.Add(rec);
+				}
+				chess.MakeMove(umo,out _);
+			}
+		}
+
+		public void AddUci(string moves)
+		{
+			AddUci(moves.Split(' '));
+		}
+
+		public void AddUci(List<string> moves)
+		{
+			AddUci(moves.ToArray());
 		}
 
 		void ShowCountMoves()
@@ -285,11 +318,13 @@ namespace NSProgram
 					{
 						while (reader.BaseStream.Position != reader.BaseStream.Length)
 						{
-							CRec rec = new CRec();
-							rec.key = reader.ReadUInt64();
-							byte[] bytes = BitConverter.GetBytes(rec.key);
+							CRec rec = new CRec
+							{
+								hash = reader.ReadUInt64()
+							};
+							byte[] bytes = BitConverter.GetBytes(rec.hash);
 							Array.Reverse(bytes);
-							rec.key = BitConverter.ToUInt64(bytes, 0);
+							rec.hash = BitConverter.ToUInt64(bytes, 0);
 							rec.move = reader.ReadUInt16();
 							bytes = BitConverter.GetBytes(rec.move);
 							Array.Reverse(bytes);
@@ -298,8 +333,8 @@ namespace NSProgram
 							bytes = BitConverter.GetBytes(rec.weight);
 							Array.Reverse(bytes);
 							rec.weight = BitConverter.ToUInt16(bytes, 0);
-							recList.Add(rec);
 							rec.learn = reader.ReadUInt32();
+							recList.Add(rec);
 						}
 					}
 				ShowCountMoves();
@@ -308,33 +343,16 @@ namespace NSProgram
 			return false;
 		}
 
-		int GetFirst(ulong hash)
-		{
-			int first = 0;
-			int last = recList.Count - 1;
-			while (true)
-			{
-				if (last - first <= 1)
-					return first;
-				int middle = (first + last) >> 1;
-				CRec rec = recList[middle];
-				if (hash <= rec.key)
-					last = middle;
-				else
-					first = middle;
-			}
-		}
-
 		List<CRec> GetRecList(ulong hash)
 		{
-			int first = GetFirst(hash);
+			int first = recList.FindHash(hash);
 			List<CRec> rl = new List<CRec>();
 			for (int n = first; n < recList.Count; n++)
 			{
 				CRec r = recList[n];
-				if (r.key == hash)
+				if (r.hash == hash)
 					rl.Add(r);
-				if (r.key > hash)
+				if (r.hash > hash)
 					break;
 			}
 			return rl;
@@ -381,8 +399,8 @@ namespace NSProgram
 			int w = 0;
 			foreach (CRec r in rl)
 			{
-				string m = MoveToStr(r.move);
-				if (m == String.Empty)
+				string m = BmoToUmo(r.move);
+				if (String.IsNullOrEmpty(m))
 					continue;
 				w += r.weight;
 				if (CChess.random.Next(w) < r.weight)
@@ -391,40 +409,67 @@ namespace NSProgram
 			return move;
 		}
 
-		string MoveToStr(int m)
+		string BmoToUmo(ushort bmo)
 		{
-			if (m == 0)
+			if (bmo == 0)
 				return String.Empty;
-			int f = (m >> 6) & 0x3f;
+			int f = (bmo >> 6) & 0x3f;
 			int fr = (f >> 3) & 0x7;
 			int ff = f & 0x7;
-			int t = m & 0x3f;
+			int t = bmo & 0x3f;
 			int tr = (t >> 3) & 0x7;
 			int tf = t & 0x7;
-			int p = (m >> 12) & 0x7;
-			string move = String.Empty;
+			int p = (bmo >> 12) & 0x7;
+			string umo = String.Empty;
 			string sf = "abcdefgh";
 			string sr = "12345678";
-			move += sf[ff];
-			move += sr[fr];
-			move += sf[tf];
-			move += sr[tr];
+			string promo = " nbrq";
+			umo += sf[ff];
+			umo += sr[fr];
+			umo += sf[tf];
+			umo += sr[tr];
 			if (p > 0)
-				move += " nbrq"[p];
+				umo += promo[p];
 			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
 			{
-				if (move == "e1h1")
-					move = "e1g1";
-				else if (move == "e1a1")
-					move = "e1c1";
-				else if (move == "e8h8")
-					move = "e8g8";
-				else if (move == "e8a8")
-					move = "e8c8";
+				if (umo == "e1h1")
+					umo = "e1g1";
+				else if (umo == "e1a1")
+					umo = "e1c1";
+				else if (umo == "e8h8")
+					umo = "e8g8";
+				else if (umo == "e8a8")
+					umo = "e8c8";
 			}
-			if (chess.IsValidMoveUmo(move, out _))
-				return move;
+			if (chess.IsValidMove(umo, out _))
+				return umo;
 			return String.Empty;
+		}
+
+		ushort UmoToBmo(string umo)
+		{
+			if (String.IsNullOrEmpty(umo))
+				return 0;
+			string sf = "abcdefgh";
+			string sr = "12345678";
+			string promo = " nbrq";
+			int ff = sf.IndexOf(umo[0]);
+			int fr = sr.IndexOf(umo[1]);
+			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
+			{
+				if (umo == "e1g1")
+					umo = "e1h1";
+				else if (umo == "e1c1")
+					umo = "e1a1";
+				else if (umo == "e8g8")
+					umo = "e8h8";
+				else if (umo == "e8c8")
+					umo = "e8a8";
+			}
+			int tf = sf.IndexOf(umo[2]);
+			int tr = sr.IndexOf(umo[3]);
+			int p = umo.Length == 5 ? promo.IndexOf(umo[4]) : 0;
+			return (ushort)((p << 12) | (fr << 9) | (ff << 6) | (tr << 3) | tf);
 		}
 
 		public string GetMove()
@@ -432,18 +477,6 @@ namespace NSProgram
 			ulong hash = GetHash();
 			List<CRec> rl = GetRecList(hash);
 			return GetMove(rl);
-		}
-
-		public void SortHash()
-		{
-			recList.Sort(delegate (CRec r1, CRec r2)
-			{
-				if (r1.key > r2.key)
-					return 1;
-				if (r1.key < r2.key)
-					return -1;
-				return r1.move - r2.move;
-			});
 		}
 
 	}

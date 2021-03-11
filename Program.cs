@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using NSUci;
-using NSChess;
 
 namespace NSProgram
 {
@@ -13,9 +12,10 @@ namespace NSProgram
 		static void Main(string[] args)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+			bool isWritable = false;
 			CUci Uci = new CUci();
-			CPolyglot book = new CPolyglot();
-			CChess chess = CPolyglot.chess;
+			CPolyglot Book = new CPolyglot();
+			CChessExt chess = CPolyglot.chess;
 			string ax = "-bn";
 			List<string> listBn = new List<string>();
 			List<string> listEf = new List<string>();
@@ -29,6 +29,10 @@ namespace NSProgram
 					case "-ef":
 					case "-ea":
 						ax = ac;
+						break;
+					case "-w":
+						ax = ac;
+						isWritable = true;
 						break;
 					default:
 						switch (ax)
@@ -65,49 +69,59 @@ namespace NSProgram
 					Console.WriteLine($"info string missing engine  [{engineName}]");
 				engineName = "";
 			}
-			if (!book.LoadFromFile(bookName))
-				if (!book.LoadFromFile($"{bookName}{CPolyglot.defExt}"))
-					Console.WriteLine($"info string missing book [{bookName}]");
+			if (!Book.LoadFromFile(bookName))
+				Book.LoadFromFile($"{bookName}{CPolyglot.defExt}");
+			Console.WriteLine($"info string book {Book.recList.Count:N0} moves");
 			while (true)
 			{
-				string msg = Console.ReadLine();
-				Uci.SetMsg(msg);
-				if (Uci.command == "help")
+				string msg = Console.ReadLine().Trim();
+				if ((msg == "help") || (msg == "book"))
 				{
-					Console.WriteLine("book add [filename].[bin] - add moves to the book");
+					Console.WriteLine("book load [filename].[bin] - clear and add moves from file");
 					Console.WriteLine("book save [filename].[bin] - save book to the file");
+					Console.WriteLine("book addfile [filename].[bin] - add moves to the book");
 					Console.WriteLine("book clear - clear all moves from the book");
-					Console.WriteLine("book info - show information about the book");
 					continue;
 				}
+				Uci.SetMsg(msg);
 				if (Uci.command == "book")
 				{
-					switch (Uci.tokens[1])
-					{
-						case "clear":
-							book.Clear();
-							break;
-						case "add":
-							if (!book.FileAdd(Uci.GetValue(2, 0)))
-								Console.WriteLine("File not found");
-							break;
-						case "save":
-							book.SaveToFile(Uci.GetValue(2, 0));
-							break;
-						default:
-							Console.WriteLine($"Unknown command [{Uci.tokens[1]}]");
-							break;
-					}
+					if (Uci.tokens.Length > 1)
+						switch (Uci.tokens[1])
+						{
+							case "addfile":
+								if (!Book.FileAdd(Uci.GetValue(2, 0)))
+									Console.WriteLine("File not found");
+								break;
+							case "adduci":
+								string movesUci = Uci.GetValue(2, 0);
+								Book.AddUci(movesUci);
+								break;
+							case "clear":
+								Book.Clear();
+								break;
+							case "load":
+								if (!Book.LoadFromFile(Uci.GetValue(2, 0)))
+									Console.WriteLine("File not found");
+								break;
+							case "save":
+								Book.SaveToFile(Uci.GetValue(2, 0));
+								break;
+							default:
+								Console.WriteLine($"Unknown command [{Uci.tokens[1]}]");
+								break;
+						}
 					continue;
 				}
-				if ((Uci.command != "go") && (engineName != ""))
+				if ((Uci.command != "go") && !String.IsNullOrEmpty(engineName))
 					myProcess.StandardInput.WriteLine(msg);
 				switch (Uci.command)
 				{
 					case "position":
+						List<string> movesUci = new List<string>();
 						string fen = Uci.GetValue("fen", "moves");
 						chess.SetFen(fen);
-						int lo = Uci.GetIndex("moves", 0);
+						int lo = Uci.GetIndex("moves");
 						if (lo++ > 0)
 						{
 							int hi = Uci.GetIndex("fen", Uci.tokens.Length);
@@ -116,13 +130,21 @@ namespace NSProgram
 							for (int n = lo; n < hi; n++)
 							{
 								string m = Uci.tokens[n];
-								chess.MakeMove(m);
+								movesUci.Add(m);
+								chess.MakeMove(m, out _);
 							}
+						}
+						if (isWritable && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
+						{
+							movesUci.Add(myMove);
+							movesUci.Add(enMove);
+							Book.AddUci(movesUci);
+							Book.SaveToFile();
 						}
 						break;
 					case "go":
-						string move = book.GetMove();
-						if (move != String.Empty)
+						string move = Book.GetMove();
+						if (!String.IsNullOrEmpty(move))
 							Console.WriteLine($"bestmove {move}");
 						else if (engineName == "")
 							Console.WriteLine("enginemove");
