@@ -15,7 +15,7 @@ namespace NSProgram
 			bool isWritable = false;
 			CUci Uci = new CUci();
 			CPolyglot Book = new CPolyglot();
-			CChessExt chess = CPolyglot.chess;
+			CChessExt chess = CPolyglot.Chess;
 			string ax = "-bn";
 			List<string> listBn = new List<string>();
 			List<string> listEf = new List<string>();
@@ -77,9 +77,10 @@ namespace NSProgram
 				string msg = Console.ReadLine().Trim();
 				if ((msg == "help") || (msg == "book"))
 				{
-					Console.WriteLine("book load [filename].[bin|uci] - clear and add moves from file");
+					Console.WriteLine("book load [filename].[bin|pgn|uci] - clear and add moves from file");
 					Console.WriteLine("book save [filename].[bin] - save book to the file");
-					Console.WriteLine("book addfile [filename].[bin|uci] - add moves to the book");
+					Console.WriteLine("book addfile [filename].[bin|pgn|uci] - add moves to the book");
+					Console.WriteLine("book adduci [uci] - add moves in uci format to the book");
 					Console.WriteLine("book clear - clear all moves from the book");
 					continue;
 				}

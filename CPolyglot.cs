@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using NSChess;
 
 namespace NSProgram
@@ -208,7 +210,7 @@ namespace NSProgram
 		public int errors = 0;
 		public string fileShortName = "Book";
 		public const string defExt = ".bin";
-		public static CChessExt chess = new CChessExt();
+		public static CChessExt Chess = new CChessExt();
 		public CRecList recList = new CRecList();
 
 		public bool AddFile(string p)
@@ -220,6 +222,8 @@ namespace NSProgram
 				string ext = Path.GetExtension(p);
 				if (ext == defExt)
 					return AddFileBin(p);
+				if (ext == ".pgn")
+					return AddFilePgn(p);
 				if (ext == ".uci")
 					return AddFileUci(p);
 			}
@@ -262,6 +266,47 @@ namespace NSProgram
 					}
 				}
 			ShowCountMoves();
+			return true;
+		}
+
+		bool AddFilePgn(string p)
+		{
+			List<string> listPgn = File.ReadAllLines(p).ToList();
+			string movesUci = String.Empty;
+			Chess.SetFen();
+			foreach (string m in listPgn)
+			{
+				string cm = m.Trim();
+				if (String.IsNullOrEmpty(cm))
+					continue;
+				if (cm[0] == '[')
+					continue;
+				cm = Regex.Replace(cm, @"\.(?! |$)", ". ");
+				if (cm.StartsWith("1. "))
+				{
+					AddUci(movesUci);
+					ShowMoves();
+					movesUci = String.Empty;
+					Chess.SetFen();
+				}
+				string[] arrMoves = cm.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+				foreach (string san in arrMoves)
+				{
+					if (Char.IsDigit(san[0]))
+						continue;
+					string umo = Chess.SanToUmo(san);
+					if (umo == String.Empty)
+					{
+						errors++;
+						break;
+					}
+					movesUci += $" {umo}";
+					int emo = Chess.UmoToEmo(umo);
+					Chess.MakeMove(emo);
+				}
+			}
+			AddUci(movesUci);
+			ShowMoves();
 			return true;
 		}
 
@@ -334,7 +379,7 @@ namespace NSProgram
 		public void AddUci(string[] moves)
 		{
 			int count = moves.Length;
-			chess.SetFen();
+			Chess.SetFen();
 			for (int n = 0; n < moves.Length; n++)
 			{
 				string umo = moves[n];
@@ -347,7 +392,7 @@ namespace NSProgram
 					};
 					recList.Add(rec);
 				}
-				chess.MakeMove(umo, out _);
+				Chess.MakeMove(umo, out _);
 			}
 		}
 
@@ -383,7 +428,7 @@ namespace NSProgram
 
 		public ulong GetHash()
 		{
-			string fen = chess.GetFen();
+			string fen = Chess.GetFen();
 			string[] chunks = fen.Split(' ');
 			ulong key = 0;
 			for (int y = 0; y < 8; y++)
@@ -391,7 +436,7 @@ namespace NSProgram
 				{
 					int n = y * 8 + x;
 					int fr = CChess.arrField[n];
-					int field = chess.g_board[fr];
+					int field = Chess.g_board[fr];
 					int rank = (field & 7) - 1;
 					if (rank < 0)
 						continue;
@@ -400,15 +445,15 @@ namespace NSProgram
 					int i = 64 * shift + 8 * (7 - y) + x;
 					key ^= Random64[i];
 				}
-			if (chess.whiteTurn)
+			if (Chess.whiteTurn)
 				key ^= Random64[780];
-			if ((chess.g_castleRights & 1) != 0)
+			if ((Chess.g_castleRights & 1) != 0)
 				key ^= Random64[768];
-			if ((chess.g_castleRights & 2) != 0)
+			if ((Chess.g_castleRights & 2) != 0)
 				key ^= Random64[769];
-			if ((chess.g_castleRights & 4) != 0)
+			if ((Chess.g_castleRights & 4) != 0)
 				key ^= Random64[770];
-			if ((chess.g_castleRights & 8) != 0)
+			if ((Chess.g_castleRights & 8) != 0)
 				key ^= Random64[771];
 			string passing = chunks[3];
 			if (passing != "-")
@@ -453,7 +498,7 @@ namespace NSProgram
 			umo += sr[tr];
 			if (p > 0)
 				umo += promo[p];
-			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
+			if ((Chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
 			{
 				if (umo == "e1h1")
 					umo = "e1g1";
@@ -464,7 +509,7 @@ namespace NSProgram
 				else if (umo == "e8a8")
 					umo = "e8c8";
 			}
-			if (chess.IsValidMove(umo, out _))
+			if (Chess.IsValidMove(umo, out _))
 				return umo;
 			return String.Empty;
 		}
@@ -490,7 +535,7 @@ namespace NSProgram
 			string promo = " nbrq";
 			int ff = sf.IndexOf(umo[0]);
 			int fr = sr.IndexOf(umo[1]);
-			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
+			if ((Chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
 			{
 				if (umo == "e1g1")
 					umo = "e1h1";
