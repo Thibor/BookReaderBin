@@ -205,10 +205,73 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
+		public int errors = 0;
 		public string fileShortName = "Book";
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
+
+		public bool AddFile(string p)
+		{
+			if (File.Exists(p))
+			{
+				if (String.IsNullOrEmpty(fileShortName))
+					fileShortName = Path.GetFileNameWithoutExtension(p);
+				string ext = Path.GetExtension(p);
+				if (ext == defExt)
+					return AddFileBin(p);
+				if (ext == ".uci")
+					return AddFileUci(p);
+			}
+			return false;
+		}
+
+		public bool AddFileBin(string path)
+		{
+			FileStream fs;
+			try
+			{
+				fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+			}
+			catch
+			{
+				return false;
+			}
+			if (fs != null)
+				using (BinaryReader reader = new BinaryReader(fs))
+				{
+					while (reader.BaseStream.Position != reader.BaseStream.Length)
+					{
+						CRec rec = new CRec
+						{
+							hash = reader.ReadUInt64()
+						};
+						byte[] bytes = BitConverter.GetBytes(rec.hash);
+						Array.Reverse(bytes);
+						rec.hash = BitConverter.ToUInt64(bytes, 0);
+						rec.move = reader.ReadUInt16();
+						bytes = BitConverter.GetBytes(rec.move);
+						Array.Reverse(bytes);
+						rec.move = BitConverter.ToUInt16(bytes, 0);
+						rec.weight = reader.ReadUInt16();
+						bytes = BitConverter.GetBytes(rec.weight);
+						Array.Reverse(bytes);
+						rec.weight = BitConverter.ToUInt16(bytes, 0);
+						rec.learn = reader.ReadUInt32();
+						recList.Add(rec);
+					}
+				}
+			ShowCountMoves();
+			return true;
+		}
+
+		bool AddFileUci(string p)
+		{
+			string[] lines = File.ReadAllLines(p);
+			foreach (string uci in lines)
+				AddUci(uci);
+			return true;
+		}
 
 		public void Clear()
 		{
@@ -220,7 +283,7 @@ namespace NSProgram
 		{
 			fileShortName = Path.GetFileNameWithoutExtension(path);
 			recList.Clear();
-			return FileAdd(path);
+			return AddFile(path);
 		}
 
 		public void SaveToFile(string path)
@@ -284,7 +347,7 @@ namespace NSProgram
 					};
 					recList.Add(rec);
 				}
-				chess.MakeMove(umo,out _);
+				chess.MakeMove(umo, out _);
 			}
 		}
 
@@ -301,46 +364,6 @@ namespace NSProgram
 		void ShowCountMoves()
 		{
 			Console.WriteLine($"info string book {recList.Count:N0} moves");
-		}
-
-		public bool FileAdd(string path)
-		{
-			if (File.Exists(path))
-			{
-				FileStream fs = null;
-				try
-				{
-					fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-				}
-				catch { }
-				if (fs != null)
-					using (BinaryReader reader = new BinaryReader(fs))
-					{
-						while (reader.BaseStream.Position != reader.BaseStream.Length)
-						{
-							CRec rec = new CRec
-							{
-								hash = reader.ReadUInt64()
-							};
-							byte[] bytes = BitConverter.GetBytes(rec.hash);
-							Array.Reverse(bytes);
-							rec.hash = BitConverter.ToUInt64(bytes, 0);
-							rec.move = reader.ReadUInt16();
-							bytes = BitConverter.GetBytes(rec.move);
-							Array.Reverse(bytes);
-							rec.move = BitConverter.ToUInt16(bytes, 0);
-							rec.weight = reader.ReadUInt16();
-							bytes = BitConverter.GetBytes(rec.weight);
-							Array.Reverse(bytes);
-							rec.weight = BitConverter.ToUInt16(bytes, 0);
-							rec.learn = reader.ReadUInt32();
-							recList.Add(rec);
-						}
-					}
-				ShowCountMoves();
-				return true;
-			}
-			return false;
 		}
 
 		List<CRec> GetRecList(ulong hash)
@@ -444,6 +467,18 @@ namespace NSProgram
 			if (chess.IsValidMove(umo, out _))
 				return umo;
 			return String.Empty;
+		}
+
+		public void ShowMoves(bool last = false)
+		{
+			Console.Write($"\r{recList.Count} moves");
+			if (last)
+			{
+				Console.WriteLine();
+				if (errors > 0)
+					Console.WriteLine($"{errors} errors");
+				errors = 0;
+			}
 		}
 
 		ushort UmoToBmo(string umo)
