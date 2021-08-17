@@ -208,7 +208,7 @@ namespace NSProgram
    0xF8D626AAAF278509,
 };
 		public int errors = 0;
-		public string fileShortName = "Book";
+		public string fileShortName = String.Empty;
 		public const string defExt = ".bin";
 		public static CChessExt Chess = new CChessExt();
 		public CRecList recList = new CRecList();
@@ -248,20 +248,11 @@ namespace NSProgram
 					{
 						CRec rec = new CRec
 						{
-							hash = reader.ReadUInt64()
+							hash = ReadUInt64(reader),
+							move = ReadUInt16(reader),
+							weight = ReadUInt16(reader),
+							learn = ReadUInt32(reader)
 						};
-						byte[] bytes = BitConverter.GetBytes(rec.hash);
-						Array.Reverse(bytes);
-						rec.hash = BitConverter.ToUInt64(bytes, 0);
-						rec.move = reader.ReadUInt16();
-						bytes = BitConverter.GetBytes(rec.move);
-						Array.Reverse(bytes);
-						rec.move = BitConverter.ToUInt16(bytes, 0);
-						rec.weight = reader.ReadUInt16();
-						bytes = BitConverter.GetBytes(rec.weight);
-						Array.Reverse(bytes);
-						rec.weight = BitConverter.ToUInt16(bytes, 0);
-						rec.learn = reader.ReadUInt32();
 						recList.Add(rec);
 					}
 				}
@@ -331,6 +322,63 @@ namespace NSProgram
 			return AddFile(path);
 		}
 
+		void WriteUInt64(BinaryWriter writer, ulong v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		ulong ReadUInt64(BinaryReader reader)
+		{
+			ulong v = reader.ReadUInt64();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt64(bytes, 0);
+			}
+			return v;
+		}
+
+		void WriteUInt32(BinaryWriter writer, uint v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		uint ReadUInt32(BinaryReader reader)
+		{
+			uint v = reader.ReadUInt32();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt32(bytes, 0);
+			}
+			return v;
+		}
+
+		void WriteUInt16(BinaryWriter writer, ushort v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		ushort ReadUInt16(BinaryReader reader)
+		{
+			ushort v = reader.ReadUInt16();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt16(bytes, 0);
+			}
+			return v;
+		}
+
 		public void SaveToFile(string path)
 		{
 			FileStream fs = null;
@@ -351,16 +399,10 @@ namespace NSProgram
 							fs.Position = fs.Length - 16;
 							rec.weight += last.weight;
 						}
-						byte[] bytes = BitConverter.GetBytes(rec.hash);
-						Array.Reverse(bytes);
-						writer.Write(BitConverter.ToUInt64(bytes, 0));
-						bytes = BitConverter.GetBytes(rec.move);
-						Array.Reverse(bytes);
-						writer.Write(BitConverter.ToUInt16(bytes, 0));
-						bytes = BitConverter.GetBytes(rec.weight);
-						Array.Reverse(bytes);
-						writer.Write(BitConverter.ToUInt16(bytes, 0));
-						writer.Write(rec.learn);
+						WriteUInt64(writer, rec.hash);
+						WriteUInt16(writer, rec.move);
+						WriteUInt16(writer, rec.weight);
+						WriteUInt32(writer, rec.learn);
 						last = rec;
 					}
 				}
