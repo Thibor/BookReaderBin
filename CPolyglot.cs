@@ -215,33 +215,24 @@ namespace NSProgram
 
 		public bool AddFile(string p)
 		{
-			if (File.Exists(p))
-			{
-				if (String.IsNullOrEmpty(fileShortName))
-					fileShortName = Path.GetFileNameWithoutExtension(p);
-				string ext = Path.GetExtension(p);
-				if (ext == defExt)
-					return AddFileBin(p);
-				if (ext == ".pgn")
-					return AddFilePgn(p);
-				if (ext == ".uci")
-					return AddFileUci(p);
-			}
-			return false;
+			if (!File.Exists(p))
+				return false;
+			if (String.IsNullOrEmpty(fileShortName))
+				fileShortName = Path.GetFileNameWithoutExtension(p);
+			string ext = Path.GetExtension(p);
+			if (ext == defExt)
+				AddFileBin(p);
+			else if (ext == ".pgn")
+				AddFilePgn(p);
+			else if (ext == ".uci")
+				AddFileUci(p);
+			return true;
 		}
 
-		public bool AddFileBin(string path)
+		public void AddFileBin(string path)
 		{
-			FileStream fs;
-			try
+			using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
 			{
-				fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-			}
-			catch
-			{
-				return false;
-			}
-			if (fs != null)
 				using (BinaryReader reader = new BinaryReader(fs))
 				{
 					while (reader.BaseStream.Position != reader.BaseStream.Length)
@@ -256,11 +247,11 @@ namespace NSProgram
 						recList.Add(rec);
 					}
 				}
+			}
 			ShowCountMoves();
-			return true;
 		}
 
-		bool AddFilePgn(string p)
+		void AddFilePgn(string p)
 		{
 			List<string> listPgn = File.ReadAllLines(p).ToList();
 			string movesUci = String.Empty;
@@ -298,15 +289,13 @@ namespace NSProgram
 			}
 			AddUci(movesUci);
 			ShowMoves();
-			return true;
 		}
 
-		bool AddFileUci(string p)
+		void AddFileUci(string p)
 		{
 			string[] lines = File.ReadAllLines(p);
 			foreach (string uci in lines)
 				AddUci(uci);
-			return true;
 		}
 
 		public void Clear()
