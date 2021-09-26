@@ -72,8 +72,7 @@ namespace NSProgram
 			if (!Book.LoadFromFile(bookName))
 				Book.LoadFromFile($"{bookName}{CPolyglot.defExt}");
 			Console.WriteLine($"info string book {Book.recList.Count:N0} moves");
-			while (true)
-			{
+			do{
 				string msg = Console.ReadLine().Trim();
 				if ((msg == "help") || (msg == "book"))
 				{
@@ -157,7 +156,8 @@ namespace NSProgram
 							myProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			}
+			} while (Uci.command != "quit");
+
 		}
 	}
 }
