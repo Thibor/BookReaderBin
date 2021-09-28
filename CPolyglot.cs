@@ -207,7 +207,6 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
-		public int bookLimitW = 0;
 		public int errors = 0;
 		public string fileShortName = String.Empty;
 		public const string defExt = ".bin";
@@ -421,13 +420,13 @@ namespace NSProgram
 			return (index & 1) != (count & 1);
 		}
 
-		public void AddUci(string[] moves)
+		public void AddUci(string[] moves,int limit = 0)
 		{
 			int count = moves.Length;
 			Chess.SetFen();
 			for (int n = 0; n < moves.Length; n++)
 			{
-				if ((bookLimitW > 0) && (bookLimitW <= n))
+				if ((limit > 0) && (limit <= n))
 					break;
 				string umo = moves[n];
 				if (IsWinner(n, count))
@@ -448,9 +447,9 @@ namespace NSProgram
 			AddUci(moves.Split(' '));
 		}
 
-		public void AddUci(List<string> moves)
+		public void AddUci(List<string> moves,int limit = 0)
 		{
-			AddUci(moves.ToArray());
+			AddUci(moves.ToArray(),limit);
 		}
 
 		void ShowCountMoves()
