@@ -12,7 +12,14 @@ namespace NSProgram
 		static void Main(string[] args)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-			bool isWritable = false;
+			/// <summary>
+			/// Book can write new moves.
+			/// </summary>
+			bool isW = false;
+			/// <summary>
+			/// Limit ply to write.
+			/// </summary>
+			int bookLimitW = 32;
 			CUci Uci = new CUci();
 			CPolyglot Book = new CPolyglot();
 			CChessExt chess = CPolyglot.Chess;
@@ -28,11 +35,12 @@ namespace NSProgram
 					case "-bn":
 					case "-ef":
 					case "-ea":
+					case "-lw"://limit write in half moves
 						ax = ac;
 						break;
 					case "-w":
 						ax = ac;
-						isWritable = true;
+						isW = true;
 						break;
 					default:
 						switch (ax)
@@ -45,6 +53,9 @@ namespace NSProgram
 								break;
 							case "-ea":
 								listEa.Add(ac);
+								break;
+							case "-lw":
+								bookLimitW = int.TryParse(ac, out int lw) ? lw : 0;
 								break;
 						}
 						break;
@@ -72,7 +83,8 @@ namespace NSProgram
 			if (!Book.LoadFromFile(bookName))
 				Book.LoadFromFile($"{bookName}{CPolyglot.defExt}");
 			Console.WriteLine($"info string book {Book.recList.Count:N0} moves");
-			do{
+			do
+			{
 				string msg = Console.ReadLine().Trim();
 				if ((msg == "help") || (msg == "book"))
 				{
@@ -138,10 +150,11 @@ namespace NSProgram
 								chess.MakeMove(m, out _);
 							}
 						}
-						if (isWritable && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
+						if (isW && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
 							movesUci.Add(myMove);
 							movesUci.Add(enMove);
+							Book.bookLimitW = bookLimitW;
 							Book.AddUci(movesUci);
 							Book.SaveToFile();
 						}

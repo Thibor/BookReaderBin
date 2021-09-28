@@ -207,6 +207,7 @@ namespace NSProgram
    0xCF3145DE0ADD4289, 0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
    0xF8D626AAAF278509,
 };
+		public int bookLimitW = 0;
 		public int errors = 0;
 		public string fileShortName = String.Empty;
 		public const string defExt = ".bin";
@@ -368,8 +369,9 @@ namespace NSProgram
 			return v;
 		}
 
-		public void SaveToFile(string path)
+		public void SaveToFile(string path,int reduction = 0)
 		{
+			bool r = false;
 			FileStream fs = null;
 			try
 			{
@@ -383,10 +385,19 @@ namespace NSProgram
 					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
+						rec.weight >>= reduction;
+						if (rec.weight == 0)
+							continue;
 						if ((rec.hash == last.hash) && (rec.move == last.move))
 						{
+							int weight = rec.weight + last.weight;
+							if(weight > 0xffff)
+							{
+								r = true;
+								weight = 0xffff;
+							}
 							fs.Position = fs.Length - 16;
-							rec.weight += last.weight;
+							rec.weight = (ushort)weight;
 						}
 						WriteUInt64(writer, rec.hash);
 						WriteUInt16(writer, rec.move);
@@ -395,6 +406,9 @@ namespace NSProgram
 						last = rec;
 					}
 				}
+			if (r)
+				SaveToFile(path,1);
+
 		}
 
 		public void SaveToFile()
@@ -413,6 +427,8 @@ namespace NSProgram
 			Chess.SetFen();
 			for (int n = 0; n < moves.Length; n++)
 			{
+				if ((bookLimitW > 0) && (bookLimitW <= n))
+					break;
 				string umo = moves[n];
 				if (IsWinner(n, count))
 				{
