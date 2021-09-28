@@ -154,7 +154,7 @@ namespace NSProgram
 						{
 							movesUci.Add(myMove);
 							movesUci.Add(enMove);
-							Book.AddUci(movesUci,bookLimitW);
+							Book.AddUci(movesUci, bookLimitW, false);
 							Book.SaveToFile();
 						}
 						break;

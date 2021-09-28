@@ -368,7 +368,7 @@ namespace NSProgram
 			return v;
 		}
 
-		public void SaveToFile(string path,int reduction = 0)
+		public void SaveToFile(string path, int reduction = 0)
 		{
 			bool r = false;
 			FileStream fs = null;
@@ -390,7 +390,7 @@ namespace NSProgram
 						if ((rec.hash == last.hash) && (rec.move == last.move))
 						{
 							int weight = rec.weight + last.weight;
-							if(weight > 0xffff)
+							if (weight > 0xffff)
 							{
 								r = true;
 								weight = 0xffff;
@@ -406,7 +406,7 @@ namespace NSProgram
 					}
 				}
 			if (r)
-				SaveToFile(path,1);
+				SaveToFile(path, 1);
 
 		}
 
@@ -420,7 +420,7 @@ namespace NSProgram
 			return (index & 1) != (count & 1);
 		}
 
-		public void AddUci(string[] moves,int limit = 0)
+		public void AddUci(string[] moves, int limit = 0, bool all = true)
 		{
 			int count = moves.Length;
 			Chess.SetFen();
@@ -429,7 +429,7 @@ namespace NSProgram
 				if ((limit > 0) && (limit <= n))
 					break;
 				string umo = moves[n];
-				if (IsWinner(n, count))
+				if (IsWinner(n, count) || all)
 				{
 					CRec rec = new CRec
 					{
@@ -447,9 +447,9 @@ namespace NSProgram
 			AddUci(moves.Split(' '));
 		}
 
-		public void AddUci(List<string> moves,int limit = 0)
+		public void AddUci(List<string> moves, int limit = 0, bool all = true)
 		{
-			AddUci(moves.ToArray(),limit);
+			AddUci(moves.ToArray(), limit, all);
 		}
 
 		void ShowCountMoves()
