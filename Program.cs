@@ -17,6 +17,10 @@ namespace NSProgram
 			/// </summary>
 			bool isW = false;
 			/// <summary>
+			/// Limit ply to read.
+			/// </summary>
+			int bookLimitR = 32;
+			/// <summary>
 			/// Limit ply to write.
 			/// </summary>
 			int bookLimitW = 32;
@@ -35,6 +39,7 @@ namespace NSProgram
 					case "-bn":
 					case "-ef":
 					case "-ea":
+					case "-lr"://limit read in half moves
 					case "-lw"://limit write in half moves
 						ax = ac;
 						break;
@@ -53,6 +58,9 @@ namespace NSProgram
 								break;
 							case "-ea":
 								listEa.Add(ac);
+								break;
+							case "-lr":
+								bookLimitR = int.TryParse(ac, out int lr) ? lr : 0;
 								break;
 							case "-lw":
 								bookLimitW = int.TryParse(ac, out int lw) ? lw : 0;
@@ -159,7 +167,13 @@ namespace NSProgram
 						}
 						break;
 					case "go":
-						string move = Book.GetMove();
+						string move = String.Empty;
+						if ((bookLimitR == 0) || (bookLimitR > chess.g_moveNumber))
+						{
+							move = Book.GetMove();
+							if (!chess.IsValidMove(move, out _))
+								move = String.Empty;
+						}
 						if (!String.IsNullOrEmpty(move))
 							Console.WriteLine($"bestmove {move}");
 						else if (engineName == "")
