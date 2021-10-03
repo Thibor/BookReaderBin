@@ -65,6 +65,10 @@ namespace NSProgram
 							case "-lw":
 								bookLimitW = int.TryParse(ac, out int lw) ? lw : 0;
 								break;
+							case "-w":
+								ac = ac.Replace("K", "000").Replace("M", "000000");
+								Book.maxRecords = int.TryParse(ac, out int m) ? m : 0;
+								break;
 						}
 						break;
 				}

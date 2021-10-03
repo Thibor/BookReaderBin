@@ -208,6 +208,7 @@ namespace NSProgram
    0xF8D626AAAF278509,
 };
 		public int errors = 0;
+		public int maxRecords = 0;
 		public string fileShortName = String.Empty;
 		public const string defExt = ".bin";
 		public static CChessExt Chess = new CChessExt();
@@ -304,6 +305,11 @@ namespace NSProgram
 			ShowCountMoves();
 		}
 
+		public int Delete(int c)
+		{
+			return recList.RecDelete(c);
+		}
+
 		public bool LoadFromFile(string path)
 		{
 			fileShortName = Path.GetFileNameWithoutExtension(path);
@@ -370,41 +376,45 @@ namespace NSProgram
 
 		public void SaveToFile(string path, int reduction = 0)
 		{
+			if ((maxRecords > 0) && (recList.Count > maxRecords))
+				Delete(recList.Count - maxRecords);
 			bool r = false;
-			FileStream fs = null;
 			try
 			{
-				fs = File.Open(path, FileMode.Create, FileAccess.Write);
-			}
-			catch { }
-			if (fs != null)
-				using (BinaryWriter writer = new BinaryWriter(fs))
+				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write))
 				{
-					CRec last = new CRec();
-					recList.SortHash();
-					foreach (CRec rec in recList)
+					using (BinaryWriter writer = new BinaryWriter(fs))
 					{
-						rec.weight >>= reduction;
-						if (rec.weight == 0)
-							continue;
-						if ((rec.hash == last.hash) && (rec.move == last.move))
+						CRec last = new CRec();
+						recList.SortHash();
+						foreach (CRec rec in recList)
 						{
-							int weight = rec.weight + last.weight;
-							if (weight > 0xffff)
+							rec.weight >>= reduction;
+							if (rec.weight == 0)
+								continue;
+							if ((rec.hash == last.hash) && (rec.move == last.move))
 							{
-								r = true;
-								weight = 0xffff;
+								int weight = rec.weight + last.weight;
+								if (weight > 0xffff)
+								{
+									r = true;
+									weight = 0xffff;
+								}
+								fs.Position = fs.Length - 16;
+								rec.weight = (ushort)weight;
 							}
-							fs.Position = fs.Length - 16;
-							rec.weight = (ushort)weight;
+							WriteUInt64(writer, rec.hash);
+							WriteUInt16(writer, rec.move);
+							WriteUInt16(writer, rec.weight);
+							WriteUInt32(writer, rec.learn);
+							last = rec;
 						}
-						WriteUInt64(writer, rec.hash);
-						WriteUInt16(writer, rec.move);
-						WriteUInt16(writer, rec.weight);
-						WriteUInt32(writer, rec.learn);
-						last = rec;
 					}
 				}
+			}
+			catch
+			{
+			}
 			if (r)
 				SaveToFile(path, 1);
 

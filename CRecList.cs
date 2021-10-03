@@ -17,6 +17,20 @@ namespace NSProgram
 	class CRecList : List<CRec>
 	{
 
+		public int RecDelete(int count)
+		{
+			int c = Count;
+			if ((count == 0) || (count >= Count))
+				Clear();
+			else
+			{
+				SortWeight();
+				RemoveRange(Count - count, count);
+				SortHash();
+			}
+			return c - Count;
+		}
+
 		public int FindHash(ulong hash)
 		{
 			int first = -1;
@@ -43,6 +57,14 @@ namespace NSProgram
 				if (r1.hash < r2.hash)
 					return -1;
 				return r1.move - r2.move;
+			});
+		}
+
+		public void SortWeight()
+		{
+			Sort(delegate (CRec r1, CRec r2)
+			{
+				return r2.weight - r1.weight;
 			});
 		}
 
