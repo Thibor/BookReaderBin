@@ -217,12 +217,12 @@ namespace NSProgram
 		public bool AddFile(string p)
 		{
 			if (!File.Exists(p))
-				return false;
+				return true;
 			if (String.IsNullOrEmpty(fileShortName))
 				fileShortName = Path.GetFileNameWithoutExtension(p);
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
-				AddFileBin(p);
+				return AddFileBin(p);
 			else if (ext == ".pgn")
 				AddFilePgn(p);
 			else if (ext == ".uci")
@@ -230,26 +230,34 @@ namespace NSProgram
 			return true;
 		}
 
-		public void AddFileBin(string path)
+		public bool AddFileBin(string path)
 		{
-			using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+			try
 			{
-				using (BinaryReader reader = new BinaryReader(fs))
+				using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
 				{
-					while (reader.BaseStream.Position != reader.BaseStream.Length)
+					using (BinaryReader reader = new BinaryReader(fs))
 					{
-						CRec rec = new CRec
+						while (reader.BaseStream.Position != reader.BaseStream.Length)
 						{
-							hash = ReadUInt64(reader),
-							move = ReadUInt16(reader),
-							weight = ReadUInt16(reader),
-							learn = ReadUInt32(reader)
-						};
-						recList.Add(rec);
+							CRec rec = new CRec
+							{
+								hash = ReadUInt64(reader),
+								move = ReadUInt16(reader),
+								weight = ReadUInt16(reader),
+								learn = ReadUInt32(reader)
+							};
+							recList.Add(rec);
+						}
 					}
 				}
 			}
+			catch
+			{
+				return false;
+			}
 			ShowCountMoves();
+			return true;
 		}
 
 		void AddFilePgn(string p)

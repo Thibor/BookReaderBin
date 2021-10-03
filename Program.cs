@@ -74,26 +74,35 @@ namespace NSProgram
 				}
 			}
 			string bookName = String.Join(" ", listBn);
-			string engineName = String.Join(" ", listEf);
+			string engineFile = String.Join(" ", listEf);
 			string arguments = String.Join(" ", listEa);
-			Process myProcess = new Process();
-			if (File.Exists(engineName))
+
+			string ext = Path.GetExtension(bookName);
+			if (String.IsNullOrEmpty(ext))
+				bookName = $"{bookName}{CPolyglot.defExt}";
+			bool fileLoaded = Book.LoadFromFile(bookName);
+			if (fileLoaded)
+				Console.WriteLine($"info string book on");
+
+			Process engineProcess = null;
+			if (File.Exists(engineFile))
 			{
-				myProcess.StartInfo.FileName = engineName;
-				myProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engineName);
-				myProcess.StartInfo.UseShellExecute = false;
-				myProcess.StartInfo.RedirectStandardInput = true;
-				myProcess.StartInfo.Arguments = arguments;
-				myProcess.Start();
+				engineProcess = new Process();
+				engineProcess.StartInfo.FileName = engineFile;
+				engineProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engineFile);
+				engineProcess.StartInfo.UseShellExecute = false;
+				engineProcess.StartInfo.RedirectStandardInput = true;
+				engineProcess.StartInfo.Arguments = arguments;
+				engineProcess.Start();
+				Console.WriteLine($"info string engine on");
 			}
 			else
 			{
-				if (engineName != "")
-					Console.WriteLine($"info string missing engine  [{engineName}]");
-				engineName = "";
+				if (engineFile != String.Empty)
+					Console.WriteLine($"info string missing engine  [{engineFile}]");
+				engineFile = String.Empty;
 			}
-			if (!Book.LoadFromFile(bookName))
-				Book.LoadFromFile($"{bookName}{CPolyglot.defExt}");
+
 			Console.WriteLine($"info string book {Book.recList.Count:N0} moves");
 			do
 			{
@@ -114,10 +123,13 @@ namespace NSProgram
 						switch (Uci.tokens[1])
 						{
 							case "addfile":
-								if (!Book.AddFile(Uci.GetValue(2, 0)))
-									Console.WriteLine("File not found");
-								else
+								string fn = Uci.GetValue(2, 0);
+								if (File.Exists(fn))
+								{
+									Book.AddFile(fn);
 									Book.ShowMoves(true);
+								}
+								else Console.WriteLine("File not found");
 								break;
 							case "adduci":
 								string movesUci = Uci.GetValue(2, 0);
@@ -141,8 +153,8 @@ namespace NSProgram
 						}
 					continue;
 				}
-				if ((Uci.command != "go") && !String.IsNullOrEmpty(engineName))
-					myProcess.StandardInput.WriteLine(msg);
+				if ((Uci.command != "go") && !String.IsNullOrEmpty(engineFile))
+					engineProcess.StandardInput.WriteLine(msg);
 				switch (Uci.command)
 				{
 					case "position":
@@ -162,7 +174,7 @@ namespace NSProgram
 								chess.MakeMove(m, out _);
 							}
 						}
-						if (isW && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
+						if (isW && fileLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
 							movesUci.Add(myMove);
 							movesUci.Add(enMove);
@@ -180,10 +192,10 @@ namespace NSProgram
 						}
 						if (!String.IsNullOrEmpty(move))
 							Console.WriteLine($"bestmove {move}");
-						else if (engineName == "")
+						else if (engineProcess == null)
 							Console.WriteLine("enginemove");
 						else
-							myProcess.StandardInput.WriteLine(msg);
+							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
 			} while (Uci.command != "quit");
