@@ -27,8 +27,8 @@ namespace NSProgram
 			CUci Uci = new CUci();
 			CPolyglot Book = new CPolyglot();
 			CChessExt chess = CPolyglot.Chess;
-			string ax = "-bn";
-			List<string> listBn = new List<string>();
+			string ax = "-bf";
+			List<string> listBf = new List<string>();
 			List<string> listEf = new List<string>();
 			List<string> listEa = new List<string>();
 			for (int n = 0; n < args.Length; n++)
@@ -36,7 +36,7 @@ namespace NSProgram
 				string ac = args[n];
 				switch (ac)
 				{
-					case "-bn":
+					case "-bf":
 					case "-ef":
 					case "-ea":
 					case "-lr"://limit read in half moves
@@ -50,8 +50,8 @@ namespace NSProgram
 					default:
 						switch (ax)
 						{
-							case "-bn":
-								listBn.Add(ac);
+							case "-bf":
+								listBf.Add(ac);
 								break;
 							case "-ef":
 								listEf.Add(ac);
@@ -73,14 +73,14 @@ namespace NSProgram
 						break;
 				}
 			}
-			string bookName = String.Join(" ", listBn);
+			string bookFile = String.Join(" ", listBf);
 			string engineFile = String.Join(" ", listEf);
 			string arguments = String.Join(" ", listEa);
 
-			string ext = Path.GetExtension(bookName);
+			string ext = Path.GetExtension(bookFile);
 			if (String.IsNullOrEmpty(ext))
-				bookName = $"{bookName}{CPolyglot.defExt}";
-			bool fileLoaded = Book.LoadFromFile(bookName);
+				bookFile = $"{bookFile}{CPolyglot.defExt}";
+			bool fileLoaded = Book.LoadFromFile(bookFile);
 			if (fileLoaded)
 				Console.WriteLine($"info string book on");
 

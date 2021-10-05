@@ -209,6 +209,8 @@ namespace NSProgram
 };
 		public int errors = 0;
 		public int maxRecords = 0;
+		string path = String.Empty;
+		string fileDirectory = String.Empty;
 		public string fileShortName = String.Empty;
 		public const string defExt = ".bin";
 		public static CChessExt Chess = new CChessExt();
@@ -318,11 +320,20 @@ namespace NSProgram
 			return recList.RecDelete(c);
 		}
 
-		public bool LoadFromFile(string path)
+		public bool LoadFromFile(string p)
 		{
-			fileShortName = Path.GetFileNameWithoutExtension(path);
+			path = p;
+			fileDirectory = Path.GetDirectoryName(p);
+			if (fileDirectory != String.Empty)
+				fileDirectory = $@"{fileDirectory}\";
+			fileShortName = Path.GetFileNameWithoutExtension(p);
 			recList.Clear();
-			return AddFile(path);
+			return AddFile(p);
+		}
+
+		public bool LoadFromFile()
+		{
+			return LoadFromFile(path);
 		}
 
 		void WriteUInt64(BinaryWriter writer, ulong v)
@@ -430,7 +441,7 @@ namespace NSProgram
 
 		public void SaveToFile()
 		{
-			SaveToFile($"{fileShortName}{defExt}");
+			SaveToFile($@"{fileDirectory}{fileShortName}{defExt}");
 		}
 
 		public bool IsWinner(int index, int count)
