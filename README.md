@@ -5,7 +5,7 @@ To use this program you need install  <a href="https://dotnet.microsoft.com/down
 
 ## Parameters
 
-**-bn** polyglot opening Book file Name<br/>
+**-bf** chess opening Book File name<br/>
 **-ef** chess Engine File name<br/>
 **-ea** chess Engine Arguments<br/>
 **-lr** Limit maximum ply depth when Read from book (default 32) 0 means no limit<br/>
