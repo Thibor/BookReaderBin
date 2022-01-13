@@ -43,7 +43,7 @@ namespace NSProgram
 				CRec rec = this[middle];
 				if (hash <= rec.hash)
 					last = middle;
-				else if (hash > rec.hash)
+				else
 					first = middle;
 			}
 		}
