@@ -541,7 +541,7 @@ namespace NSProgram
 				string m = BmoToUmo(r.move);
 				if (String.IsNullOrEmpty(m))
 					continue;
-				w += r.weight;
+				w += r.weight +1;
 				if (CChess.random.Next(w) < r.weight)
 					move = m;
 			}
