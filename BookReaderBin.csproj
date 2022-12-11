@@ -46,7 +46,8 @@
   <ItemGroup>
     <Compile Include="CChess.cs" />
     <Compile Include="CChessExt.cs" />
-    <Compile Include="CPolyglot.cs" />
+    <Compile Include="CBook.cs" />
+    <Compile Include="CRapLog.cs" />
     <Compile Include="CRecList.cs" />
     <Compile Include="CUci.cs" />
     <Compile Include="Program.cs" />

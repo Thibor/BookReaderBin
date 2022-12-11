@@ -4,14 +4,20 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using NSUci;
+using RapLog;
 
 namespace NSProgram
 {
 	class Program
 	{
+		public static bool isLog = false;
+		public static CBook book = new CBook();
+		public static CRapLog log = new CRapLog();
+
 		static void Main(string[] args)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+			bool isInfo = false;
 			/// <summary>
 			/// Book can write new moves.
 			/// </summary>
@@ -24,9 +30,8 @@ namespace NSProgram
 			/// Limit ply to write.
 			/// </summary>
 			int bookLimitW = 32;
-			CUci Uci = new CUci();
-			CPolyglot Book = new CPolyglot();
-			CChessExt chess = CPolyglot.Chess;
+			CUci uci = new CUci();
+			CChessExt chess = CBook.chess;
 			string ax = "-bf";
 			List<string> listBf = new List<string>();
 			List<string> listEf = new List<string>();
@@ -46,6 +51,14 @@ namespace NSProgram
 					case "-w":
 						ax = ac;
 						isW = true;
+						break;
+					case "-log"://add log
+						ax = ac;
+						isLog = true;
+						break;
+					case "-info":
+						ax = ac;
+						isInfo = true;
 						break;
 					default:
 						switch (ax)
@@ -67,7 +80,7 @@ namespace NSProgram
 								break;
 							case "-w":
 								ac = ac.Replace("K", "000").Replace("M", "000000");
-								Book.maxRecords = int.TryParse(ac, out int m) ? m : 0;
+								book.maxRecords = int.TryParse(ac, out int m) ? m : 0;
 								break;
 						}
 						break;
@@ -79,11 +92,17 @@ namespace NSProgram
 
 			string ext = Path.GetExtension(bookFile);
 			if (String.IsNullOrEmpty(ext))
-				bookFile = $"{bookFile}{CPolyglot.defExt}";
-			bool fileLoaded = Book.LoadFromFile(bookFile);
-			if (fileLoaded)
-				Console.WriteLine($"info string book on");
-
+				bookFile = $"{bookFile}{CBook.defExt}";
+			bool bookLoaded = book.LoadFromFile(bookFile);
+			if (bookLoaded)
+			{
+				if (book.recList.Count > 0)
+					Console.WriteLine($"info string book on {book.recList.Count:N0} moves 128 bpm");
+				if (isW)
+					Console.WriteLine($"info string write on");
+			}
+			else
+				isW = false;
 			Process engineProcess = null;
 			if (File.Exists(engineFile))
 			{
@@ -102,8 +121,8 @@ namespace NSProgram
 					Console.WriteLine($"info string missing engine  [{engineFile}]");
 				engineFile = String.Empty;
 			}
-
-			Console.WriteLine($"info string book {Book.recList.Count:N0} moves");
+			if (isInfo)
+				book.InfoMoves();
 			do
 			{
 				string msg = Console.ReadLine().Trim();
@@ -116,77 +135,81 @@ namespace NSProgram
 					Console.WriteLine("book clear - clear all moves from the book");
 					continue;
 				}
-				Uci.SetMsg(msg);
-				if (Uci.command == "book")
+				uci.SetMsg(msg);
+				if (uci.command == "book")
 				{
-					if (Uci.tokens.Length > 1)
-						switch (Uci.tokens[1])
+					if (uci.tokens.Length > 1)
+						switch (uci.tokens[1])
 						{
 							case "addfile":
-								string fn = Uci.GetValue(2, 0);
+								string fn = uci.GetValue(2, 0);
 								if (File.Exists(fn))
 								{
-									Book.AddFile(fn);
-									Book.ShowMoves(true);
+									book.AddFile(fn);
+									book.ShowMoves(true);
 								}
 								else Console.WriteLine("File not found");
 								break;
 							case "adduci":
-								string movesUci = Uci.GetValue(2, 0);
-								Book.AddUci(movesUci);
+								string movesUci = uci.GetValue(2, 0);
+								book.AddUci(movesUci);
 								break;
 							case "clear":
-								Book.Clear();
+								book.Clear();
+								book.ShowMoves();
 								break;
 							case "load":
-								if (!Book.LoadFromFile(Uci.GetValue(2, 0)))
+								if (!book.LoadFromFile(uci.GetValue(2, 0)))
 									Console.WriteLine("File not found");
 								else
-									Book.ShowMoves(true);
+									book.ShowMoves(true);
 								break;
 							case "save":
-								Book.SaveToFile(Uci.GetValue(2, 0));
+								book.SaveToFile(uci.GetValue(2, 0));
+								break;
+							case "moves":
+								book.InfoMoves(uci.GetValue(2, 0));
 								break;
 							default:
-								Console.WriteLine($"Unknown command [{Uci.tokens[1]}]");
+								Console.WriteLine($"Unknown command [{uci.tokens[1]}]");
 								break;
 						}
 					continue;
 				}
-				if ((Uci.command != "go") && !String.IsNullOrEmpty(engineFile))
+				if ((uci.command != "go") && !String.IsNullOrEmpty(engineFile))
 					engineProcess.StandardInput.WriteLine(msg);
-				switch (Uci.command)
+				switch (uci.command)
 				{
 					case "position":
 						List<string> movesUci = new List<string>();
-						string fen = Uci.GetValue("fen", "moves");
+						string fen = uci.GetValue("fen", "moves");
 						chess.SetFen(fen);
-						int lo = Uci.GetIndex("moves");
+						int lo = uci.GetIndex("moves");
 						if (lo++ > 0)
 						{
-							int hi = Uci.GetIndex("fen", Uci.tokens.Length);
+							int hi = uci.GetIndex("fen", uci.tokens.Length);
 							if (hi < lo)
-								hi = Uci.tokens.Length;
+								hi = uci.tokens.Length;
 							for (int n = lo; n < hi; n++)
 							{
-								string m = Uci.tokens[n];
+								string m = uci.tokens[n];
 								movesUci.Add(m);
 								chess.MakeMove(m, out _);
 							}
 						}
-						if (isW && fileLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
+						if (isW && bookLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
 							movesUci.Add(myMove);
 							movesUci.Add(enMove);
-							Book.AddUci(movesUci, bookLimitW, false);
-							Book.SaveToFile();
+							book.AddUci(movesUci, bookLimitW, false);
+							book.SaveToFile();
 						}
 						break;
 					case "go":
 						string move = String.Empty;
 						if ((bookLimitR == 0) || (bookLimitR > chess.g_moveNumber))
 						{
-							move = Book.GetMove();
+							move = book.GetMove();
 							if (!chess.IsValidMove(move, out _))
 								move = String.Empty;
 						}
@@ -198,7 +221,7 @@ namespace NSProgram
 							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			} while (Uci.command != "quit");
+			} while (uci.command != "quit");
 
 		}
 	}

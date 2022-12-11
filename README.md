@@ -8,8 +8,11 @@ To use this program you need install  <a href="https://dotnet.microsoft.com/down
 **-bf** chess opening Book File name<br/>
 **-ef** chess Engine File name<br/>
 **-ea** chess Engine Arguments<br/>
+**-w** Write new moves to the book<br/>
 **-lr** Limit maximum ply depth when Read from book (default 32) 0 means no limit<br/>
 **-lw** Limit maximum ply depth when Write to book (default 32) 0 means no limit<br/>
+**-log** Create LOG file<br/>
+**-info** show additional INFOrmation<br/>
 
 ### Examples
 
