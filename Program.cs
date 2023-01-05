@@ -136,7 +136,7 @@ namespace NSProgram
 					continue;
 				}
 				uci.SetMsg(msg);
-				if (uci.First() == "book")
+				if (uci.command == "book")
 				{
 					if (uci.tokens.Length > 1)
 						switch (uci.tokens[1])
@@ -204,9 +204,9 @@ namespace NSProgram
 						}
 					continue;
 				}
-				if ((uci.First() != "go") && !String.IsNullOrEmpty(engineFile))
+				if ((uci.command != "go") && !String.IsNullOrEmpty(engineFile))
 					engineProcess.StandardInput.WriteLine(msg);
-				switch (uci.First())
+				switch (uci.command)
 				{
 					case "position":
 						List<string> movesUci = new List<string>();
@@ -243,7 +243,7 @@ namespace NSProgram
 							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			} while (uci.First() != "quit");
+			} while (uci.command != "quit");
 		}
 
 	}
