@@ -88,7 +88,7 @@ namespace NSProgram
 			}
 			string bookFile = String.Join(" ", listBf);
 			string engineFile = String.Join(" ", listEf);
-			string arguments = String.Join(" ", listEa);
+			string engineArguments = String.Join(" ", listEa);
 
 			string ext = Path.GetExtension(bookFile);
 			if (String.IsNullOrEmpty(ext))
@@ -111,7 +111,7 @@ namespace NSProgram
 				engineProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engineFile);
 				engineProcess.StartInfo.UseShellExecute = false;
 				engineProcess.StartInfo.RedirectStandardInput = true;
-				engineProcess.StartInfo.Arguments = arguments;
+				engineProcess.StartInfo.Arguments = engineArguments;
 				engineProcess.Start();
 				Console.WriteLine($"info string engine on");
 			}
@@ -136,13 +136,13 @@ namespace NSProgram
 					continue;
 				}
 				uci.SetMsg(msg);
-				if (uci.command == "book")
+				if (uci.First() == "book")
 				{
 					if (uci.tokens.Length > 1)
 						switch (uci.tokens[1])
 						{
 							case "addfile":
-								string fn = uci.GetValue(2, 0);
+								string fn = uci.GetValue("addfile");
 								if (File.Exists(fn))
 								{
 									book.AddFile(fn);
@@ -151,7 +151,7 @@ namespace NSProgram
 								else Console.WriteLine("File not found");
 								break;
 							case "adduci":
-								string movesUci = uci.GetValue(2, 0);
+								string movesUci = uci.GetValue("adduci");
 								book.AddUci(movesUci);
 								break;
 							case "clear":
@@ -159,16 +159,44 @@ namespace NSProgram
 								book.ShowMoves();
 								break;
 							case "load":
-								if (!book.LoadFromFile(uci.GetValue(2, 0)))
+								if (!book.LoadFromFile(uci.GetValue("load")))
 									Console.WriteLine("File not found");
 								else
 									book.ShowMoves(true);
 								break;
 							case "save":
-								book.SaveToFile(uci.GetValue(2, 0));
+								book.SaveToFile(uci.GetValue("save"));
 								break;
 							case "moves":
-								book.InfoMoves(uci.GetValue(2, 0));
+								book.InfoMoves(uci.GetValue("moves"));
+								break;
+							case "getoption":
+								Console.WriteLine($"option name Book file type string default book{CBook.defExt}");
+								Console.WriteLine($"option name Write type check default false");
+								Console.WriteLine($"option name Log type check default false");
+								Console.WriteLine($"option name Limit read moves type spin default {bookLimitR} min 0 max 100");
+								Console.WriteLine($"option name Limit write moves type spin default {bookLimitW} min 0 max 100");
+								Console.WriteLine("optionok");
+								break;
+							case "setoption":
+								switch (uci.GetValue("name", "value").ToLower())
+								{
+									case "book file":
+										bookLoaded = book.LoadFromFile(uci.GetValue("value"));
+										break;
+									case "write":
+										isW = uci.GetValue("value") == "true";
+										break;
+									case "log":
+										isLog = uci.GetValue("value") == "true";
+										break;
+									case "limit read":
+										bookLimitR = uci.GetInt("value");
+										break;
+									case "limit write":
+										bookLimitW = uci.GetInt("value");
+										break;
+								}
 								break;
 							default:
 								Console.WriteLine($"Unknown command [{uci.tokens[1]}]");
@@ -176,26 +204,20 @@ namespace NSProgram
 						}
 					continue;
 				}
-				if ((uci.command != "go") && !String.IsNullOrEmpty(engineFile))
+				if ((uci.First() != "go") && !String.IsNullOrEmpty(engineFile))
 					engineProcess.StandardInput.WriteLine(msg);
-				switch (uci.command)
+				switch (uci.First())
 				{
 					case "position":
 						List<string> movesUci = new List<string>();
 						string fen = uci.GetValue("fen", "moves");
 						chess.SetFen(fen);
-						int lo = uci.GetIndex("moves");
-						if (lo++ > 0)
+						int i = uci.GetIndex("moves", uci.tokens.Length);
+						for (int n = i; n < uci.tokens.Length; n++)
 						{
-							int hi = uci.GetIndex("fen", uci.tokens.Length);
-							if (hi < lo)
-								hi = uci.tokens.Length;
-							for (int n = lo; n < hi; n++)
-							{
-								string m = uci.tokens[n];
-								movesUci.Add(m);
-								chess.MakeMove(m, out _);
-							}
+							string m = uci.tokens[n];
+							movesUci.Add(m);
+							chess.MakeMove(m, out _);
 						}
 						if (isW && bookLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
@@ -221,8 +243,8 @@ namespace NSProgram
 							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			} while (uci.command != "quit");
-
+			} while (uci.First() != "quit");
 		}
+
 	}
 }
