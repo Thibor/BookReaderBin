@@ -236,21 +236,19 @@ namespace NSProgram
 			path = p;
 			try
 			{
-				using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+				using (FileStream fs = File.Open(p, FileMode.Open, FileAccess.Read, FileShare.Read))
+				using (BinaryReader reader = new BinaryReader(fs))
 				{
-					using (BinaryReader reader = new BinaryReader(fs))
+					while (reader.BaseStream.Position != reader.BaseStream.Length)
 					{
-						while (reader.BaseStream.Position != reader.BaseStream.Length)
+						CRec rec = new CRec
 						{
-							CRec rec = new CRec
-							{
-								hash = ReadUInt64(reader),
-								move = ReadUInt16(reader),
-								weight = ReadUInt16(reader),
-								learn = ReadUInt32(reader)
-							};
-							recList.Add(rec);
-						}
+							hash = ReadUInt64(reader),
+							move = ReadUInt16(reader),
+							weight = ReadUInt16(reader),
+							learn = ReadUInt32(reader)
+						};
+						recList.Add(rec);
 					}
 				}
 			}
@@ -396,7 +394,7 @@ namespace NSProgram
 			bool r = false;
 			try
 			{
-				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write))
+				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
 				using (BinaryWriter writer = new BinaryWriter(fs))
 				{
 					CRec last = new CRec();
@@ -455,6 +453,9 @@ namespace NSProgram
 				if ((limit > 0) && (limit <= n))
 					break;
 				string umo = moves[n];
+				int emo = chess.UmoToEmo(umo);
+				if (emo == 0)
+					return;
 				if (IsWinner(n, count) || all)
 				{
 					CRec rec = new CRec
@@ -468,9 +469,9 @@ namespace NSProgram
 			}
 		}
 
-		public void AddUci(string moves)
+		public void AddUci(string moves, int limit = 0, bool all = true)
 		{
-			AddUci(moves.Split(' '));
+			AddUci(moves.Split(' '),limit,all);
 		}
 
 		public void AddUci(List<string> moves, int limit = 0, bool all = true)
@@ -537,7 +538,7 @@ namespace NSProgram
 				string m = BmoToUmo(r.move);
 				if (String.IsNullOrEmpty(m))
 					continue;
-				w += r.weight +1;
+				w += r.weight + 1;
 				if (CChess.random.Next(w) < r.weight)
 					move = m;
 			}
@@ -642,11 +643,11 @@ namespace NSProgram
 				{
 					Console.WriteLine("id move  score");
 					Console.WriteLine();
-					int i = 1;
+					int i = 0;
 					foreach (CRec e in rl)
 					{
 						string umo = BmoToUmo(e.move);
-						Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", i++, umo, e.weight));
+						Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.weight));
 					}
 				}
 			}

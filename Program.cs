@@ -153,6 +153,7 @@ namespace NSProgram
 								break;
 							case "save":
 								book.SaveToFile(uci.GetValue("save"));
+								Console.WriteLine("Book saved");
 								break;
 							case "moves":
 								book.InfoMoves(uci.GetValue("moves"));
@@ -199,21 +200,13 @@ namespace NSProgram
 				switch (uci.command)
 				{
 					case "position":
-						List<string> movesUci = new List<string>();
 						string fen = uci.GetValue("fen", "moves");
+						string moves = uci.GetValue("moves","fen");
 						chess.SetFen(fen);
-						int i = uci.GetIndex("moves", uci.tokens.Length);
-						for (int n = i; n < uci.tokens.Length; n++)
-						{
-							string m = uci.tokens[n];
-							movesUci.Add(m);
-							chess.MakeMove(m, out _);
-						}
+						chess.MakeMoves(moves);
 						if (isW && bookLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
-							movesUci.Add(myMove);
-							movesUci.Add(enMove);
-							book.AddUci(movesUci, bookLimitW, false);
+							book.AddUci($"{moves} {myMove} {enMove}", bookLimitW, false);
 							book.SaveToFile();
 						}
 						break;
@@ -242,7 +235,7 @@ namespace NSProgram
 				bookLoaded = book.LoadFromFile(bookFile);
 				if (bookLoaded)
 				{
-					if ((book.recList.Count > 0) && File.Exists(book.path))
+					if ((book.recList.Count > 0) && File.Exists(bookFile))
 						Console.WriteLine($"info string book on {book.recList.Count:N0} moves 128 bpm");
 					if (isW)
 						Console.WriteLine($"info string write on");

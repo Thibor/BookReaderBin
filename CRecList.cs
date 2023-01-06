@@ -31,6 +31,16 @@ namespace NSProgram
 			return c - Count;
 		}
 
+		public void DeleteRec(CRec r)
+		{
+			for(int n= Count - 1; n >= 0; n--)
+			{
+				CRec rec = this[n];
+				if ((rec.hash == r.hash) && (rec.move == r.move))
+					RemoveAt(n);
+			}
+		}
+
 		public int FindHash(ulong hash)
 		{
 			int first = -1;
