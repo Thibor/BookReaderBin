@@ -117,8 +117,9 @@ namespace NSProgram
 					Console.WriteLine("book load [filename].[bin|pgn|uci] - clear and add moves from file");
 					Console.WriteLine("book save [filename].[bin] - save book to the file");
 					Console.WriteLine("book addfile [filename].[bin|pgn|uci] - add moves to the book");
-					Console.WriteLine("book adduci [uci] - add moves in uci format to the book");
 					Console.WriteLine("book clear - clear all moves from the book");
+					Console.WriteLine("book delete [x] - delete x moves from the book");
+					Console.WriteLine("book moves [uci] - make sequence of moves and shows possible continuations");
 					continue;
 				}
 				uci.SetMsg(msg);
@@ -155,6 +156,9 @@ namespace NSProgram
 								break;
 							case "moves":
 								book.InfoMoves(uci.GetValue("moves"));
+								break;
+							case "delete":
+								book.Delete(uci.GetInt("delete"));
 								break;
 							case "getoption":
 								Console.WriteLine($"option name Book file type string default book{CBook.defExt}");

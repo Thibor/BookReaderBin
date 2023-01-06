@@ -19,10 +19,9 @@ To use this program you need install  <a href="https://dotnet.microsoft.com/down
 **book load** [filename].[bin|uci|pgn] - clear and add<br/>
 **book save** [filename].[bin] - save book to the file<br/>
 **book addfile** [filename].[bin|uci|pgn] - adds moves from another book<br/>
-**book delete** [number x] - delete x moves from the book<br/>
 **book clear** - clear all moves from the book<br/>
-**book adduci** [uci] - adds a sequence of moves in uci format<br/>
-**book moves** [uci] - make sequence of moves in uci format and shows possible continuations<br/>
+**book delete [x]** - delete x moves from the book<br/>
+**book moves [uci]** - make sequence of moves in uci format and shows possible continuations<br/>
 **book getoption** - show options<br/>
 **book setoption name [option name] value [option value]** - set option<br/>
 **quit** quit the program as soon as possible
