@@ -210,9 +210,9 @@ namespace NSProgram
 };
 		public int errors = 0;
 		public int maxRecords = 0;
-		string path = String.Empty;
-		string fileDirectory = String.Empty;
-		public string fileShortName = String.Empty;
+		public string path = String.Empty;
+		public const string name = "BookReaderBin";
+		public const string version = "2023-01-06";
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
@@ -221,8 +221,6 @@ namespace NSProgram
 		{
 			if (!File.Exists(p))
 				return true;
-			if (String.IsNullOrEmpty(fileShortName))
-				fileShortName = Path.GetFileNameWithoutExtension(p);
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
 				return AddFileBin(p);
@@ -233,8 +231,9 @@ namespace NSProgram
 			return true;
 		}
 
-		public bool AddFileBin(string path)
+		public bool AddFileBin(string p)
 		{
+			path = p;
 			try
 			{
 				using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -322,11 +321,8 @@ namespace NSProgram
 
 		public bool LoadFromFile(string p)
 		{
-			path = p;
-			fileDirectory = Path.GetDirectoryName(p);
-			if (fileDirectory != String.Empty)
-				fileDirectory = $@"{fileDirectory}\";
-			fileShortName = Path.GetFileNameWithoutExtension(p);
+			if (String.IsNullOrEmpty(p))
+				return false;
 			recList.Clear();
 			return AddFile(p);
 		}
@@ -442,7 +438,7 @@ namespace NSProgram
 
 		public void SaveToFile()
 		{
-			SaveToFile($@"{fileDirectory}{fileShortName}{defExt}");
+			SaveToFile(path);
 		}
 
 		public bool IsWinner(int index, int count)
@@ -654,6 +650,11 @@ namespace NSProgram
 					}
 				}
 			}
+		}
+
+		public void ShowInfo()
+		{
+			InfoMoves();
 		}
 
 	}

@@ -89,20 +89,8 @@ namespace NSProgram
 			string bookFile = String.Join(" ", listBf);
 			string engineFile = String.Join(" ", listEf);
 			string engineArguments = String.Join(" ", listEa);
-
-			string ext = Path.GetExtension(bookFile);
-			if (String.IsNullOrEmpty(ext))
-				bookFile = $"{bookFile}{CBook.defExt}";
-			bool bookLoaded = book.LoadFromFile(bookFile);
-			if (bookLoaded)
-			{
-				if (book.recList.Count > 0)
-					Console.WriteLine($"info string book on {book.recList.Count:N0} moves 128 bpm");
-				if (isW)
-					Console.WriteLine($"info string write on");
-			}
-			else
-				isW = false;
+			Console.WriteLine($"info string {CBook.name} ver {CBook.version}");
+			bool bookLoaded = SetBookFile(bookFile);
 			Process engineProcess = null;
 			if (File.Exists(engineFile))
 			{
@@ -121,8 +109,6 @@ namespace NSProgram
 					Console.WriteLine($"info string missing engine  [{engineFile}]");
 				engineFile = String.Empty;
 			}
-			if (isInfo)
-				book.InfoMoves();
 			do
 			{
 				string msg = Console.ReadLine().Trim();
@@ -182,7 +168,7 @@ namespace NSProgram
 								switch (uci.GetValue("name", "value").ToLower())
 								{
 									case "book file":
-										bookLoaded = book.LoadFromFile(uci.GetValue("value"));
+										SetBookFile(uci.GetValue("value"));
 										break;
 									case "write":
 										isW = uci.GetValue("value") == "true";
@@ -244,6 +230,25 @@ namespace NSProgram
 						break;
 				}
 			} while (uci.command != "quit");
+
+
+			bool SetBookFile(string bn)
+			{
+				bookFile = bn;
+				bookLoaded = book.LoadFromFile(bookFile);
+				if (bookLoaded)
+				{
+					if ((book.recList.Count > 0) && File.Exists(book.path))
+						Console.WriteLine($"info string book on {book.recList.Count:N0} moves 128 bpm");
+					if (isW)
+						Console.WriteLine($"info string write on");
+					if (isInfo)
+						book.ShowInfo();
+				}
+				else
+					isW = false;
+				return bookLoaded;
+			}
 		}
 
 	}
