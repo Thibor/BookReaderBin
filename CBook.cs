@@ -210,12 +210,393 @@ namespace NSProgram
 };
 		public int errors = 0;
 		public int maxRecords = 0;
-		public string path = String.Empty;
+		string path = String.Empty;
 		public const string name = "BookReaderBin";
 		public const string version = "2023-01-06";
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
+
+		public void Clear()
+		{
+			recList.Clear();
+		}
+
+		public int Delete(int c)
+		{
+			return recList.RecDelete(c);
+		}
+
+		void WriteUInt64(BinaryWriter writer, ulong v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		ulong ReadUInt64(BinaryReader reader)
+		{
+			ulong v = reader.ReadUInt64();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt64(bytes, 0);
+			}
+			return v;
+		}
+
+		void WriteUInt32(BinaryWriter writer, uint v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		uint ReadUInt32(BinaryReader reader)
+		{
+			uint v = reader.ReadUInt32();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt32(bytes, 0);
+			}
+			return v;
+		}
+
+		void WriteUInt16(BinaryWriter writer, ushort v)
+		{
+			byte[] bytes = BitConverter.GetBytes(v);
+			if (BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			writer.Write(bytes);
+		}
+
+		ushort ReadUInt16(BinaryReader reader)
+		{
+			ushort v = reader.ReadUInt16();
+			if (BitConverter.IsLittleEndian)
+			{
+				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
+				return BitConverter.ToUInt16(bytes, 0);
+			}
+			return v;
+		}
+
+		CRecList GetRecList(ulong hash)
+		{
+			int first = recList.FindHash(hash);
+			CRecList rl = new CRecList();
+			for (int n = first; n < recList.Count; n++)
+			{
+				CRec r = recList[n];
+				if (r.hash == hash)
+					rl.Add(r);
+				if (r.hash > hash)
+					break;
+			}
+			return rl;
+		}
+
+		public ulong GetHash()
+		{
+			string fen = chess.GetFen();
+			string[] chunks = fen.Split(' ');
+			ulong key = 0;
+			for (int y = 0; y < 8; y++)
+				for (int x = 0; x < 8; x++)
+				{
+					int n = y * 8 + x;
+					int fr = CChess.arrField[n];
+					int field = chess.g_board[fr];
+					int rank = (field & 7) - 1;
+					if (rank < 0)
+						continue;
+					int w = (field & CChess.colorWhite) > 0 ? 1 : 0;
+					int shift = (rank << 1) | w;
+					int i = 64 * shift + 8 * (7 - y) + x;
+					key ^= Random64[i];
+				}
+			if (chess.whiteTurn)
+				key ^= Random64[780];
+			if ((chess.g_castleRights & 1) != 0)
+				key ^= Random64[768];
+			if ((chess.g_castleRights & 2) != 0)
+				key ^= Random64[769];
+			if ((chess.g_castleRights & 4) != 0)
+				key ^= Random64[770];
+			if ((chess.g_castleRights & 8) != 0)
+				key ^= Random64[771];
+			string passing = chunks[3];
+			if (passing != "-")
+				key ^= Random64[772 + passing[0] - 'a'];
+			return key;
+		}
+
+		string GetMove(List<CRec> rl)
+		{
+			string move = String.Empty;
+			int w = 0;
+			foreach (CRec r in rl)
+			{
+				if (!BmoToUmo(r.move, out string umo))
+					continue;
+				w += r.weight + 1;
+				if (CChess.random.Next(w) < r.weight)
+					move = umo;
+			}
+			return move;
+		}
+
+		bool BmoToUmo(ushort bmo, out string umo)
+		{
+			umo = string.Empty;
+			if (bmo == 0)
+				return false;
+			int f = (bmo >> 6) & 0x3f;
+			int fr = (f >> 3) & 0x7;
+			int ff = f & 0x7;
+			int t = bmo & 0x3f;
+			int tr = (t >> 3) & 0x7;
+			int tf = t & 0x7;
+			int p = (bmo >> 12) & 0x7;
+			string sf = "abcdefgh";
+			string sr = "12345678";
+			string promo = " nbrq";
+			umo += sf[ff];
+			umo += sr[fr];
+			umo += sf[tf];
+			umo += sr[tr];
+			if (p > 0)
+				umo += promo[p];
+			int i = CChess.arrField[(7 - fr) * 8 + ff];
+			if ((chess.g_board[i] & CChess.pieceKing) > 0)
+			{
+				if (umo == "e1h1")
+					umo = "e1g1";
+				else if (umo == "e1a1")
+					umo = "e1c1";
+				else if (umo == "e8h8")
+					umo = "e8g8";
+				else if (umo == "e8a8")
+					umo = "e8c8";
+			}
+			return chess.IsValidMove(umo, out _, true);
+		}
+
+		public void ShowMoves(bool last = false)
+		{
+			Console.Write($"\r{recList.Count} moves");
+			if (last)
+			{
+				Console.WriteLine();
+				if (errors > 0)
+					Console.WriteLine($"{errors} errors");
+				errors = 0;
+			}
+		}
+
+		ushort UmoToBmo(string umo)
+		{
+			if (String.IsNullOrEmpty(umo))
+				return 0;
+			string sf = "abcdefgh";
+			string sr = "12345678";
+			string promo = " nbrq";
+			int ff = sf.IndexOf(umo[0]);
+			int fr = sr.IndexOf(umo[1]);
+			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
+			{
+				if (umo == "e1g1")
+					umo = "e1h1";
+				else if (umo == "e1c1")
+					umo = "e1a1";
+				else if (umo == "e8g8")
+					umo = "e8h8";
+				else if (umo == "e8c8")
+					umo = "e8a8";
+			}
+			int tf = sf.IndexOf(umo[2]);
+			int tr = sr.IndexOf(umo[3]);
+			int p = umo.Length == 5 ? promo.IndexOf(umo[4]) : 0;
+			return (ushort)((p << 12) | (fr << 9) | (ff << 6) | (tr << 3) | tf);
+		}
+
+		public string GetMove()
+		{
+			ulong hash = GetHash();
+			List<CRec> rl = GetRecList(hash);
+			return GetMove(rl);
+		}
+
+		public void InfoMoves(string moves = "")
+		{
+			chess.SetFen();
+			if (!chess.MakeMoves(moves))
+				Console.WriteLine("wrong moves");
+			else
+			{
+				ulong hash = GetHash();
+				CRecList rl = GetRecList(hash);
+				rl.SortWeight();
+				if (rl.Count == 0)
+					Console.WriteLine("no moves found");
+				else
+				{
+					Console.WriteLine("id move  score");
+					Console.WriteLine();
+					int i = 0;
+					foreach (CRec e in rl)
+						if (BmoToUmo(e.move, out string umo))
+							Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.weight));
+				}
+			}
+		}
+
+		public void ShowInfo()
+		{
+			InfoMoves();
+		}
+
+		#region save
+
+		public void SaveToFile()
+		{
+			SaveToFile(path);
+		}
+
+		public bool SaveToFile(string p)
+		{
+			string ext = Path.GetExtension(p).ToLower();
+			if (ext == defExt)
+				return SaveToBin(p);
+			if (ext == ".uci")
+				return SaveToUci(p);
+			return false;
+		}
+
+		public bool SaveToBin(string path, int reduction = 0)
+		{
+			if ((maxRecords > 0) && (recList.Count > maxRecords))
+				Delete(recList.Count - maxRecords);
+			bool r = false;
+			try
+			{
+				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
+				using (BinaryWriter writer = new BinaryWriter(fs))
+				{
+					CRec last = new CRec();
+					recList.SortHash();
+					foreach (CRec rec in recList)
+					{
+						rec.weight >>= reduction;
+						if (rec.weight == 0)
+							continue;
+						if ((rec.hash == last.hash) && (rec.move == last.move))
+						{
+							int weight = rec.weight + last.weight;
+							if (weight > 0xffff)
+							{
+								r = true;
+								weight = 0xffff;
+							}
+							fs.Position = fs.Length - 16;
+							rec.weight = (ushort)weight;
+						}
+						WriteUInt64(writer, rec.hash);
+						WriteUInt16(writer, rec.move);
+						WriteUInt16(writer, rec.weight);
+						WriteUInt32(writer, rec.learn);
+						last = rec;
+					}
+				}
+			}
+			catch
+			{
+			}
+			if (r)
+				SaveToBin(path, 1);
+			else
+				if (Program.isLog && (recList.Count / 100 > lastCount / 100))
+				Program.log.Add($"book {recList.Count:N0} moves");
+			lastCount = recList.Count;
+			return true;
+		}
+
+		public bool SaveToUci(string p)
+		{
+			List<string> sl = GetGames();
+			FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None);
+			using (StreamWriter sw = new StreamWriter(fs))
+			{
+				foreach (String uci in sl)
+					sw.WriteLine(uci);
+			}
+			return true;
+		}
+
+		List<string> GetGames()
+		{
+			List<string> sl = new List<string>();
+			GetGames(string.Empty, 0, ref sl);
+			Console.WriteLine();
+			Console.WriteLine("finish");
+			Console.Beep();
+			sl.Sort();
+			return sl;
+		}
+
+		void GetGames(string moves, int back, ref List<string> list)
+		{
+			bool add = true;
+			if (back < 5)
+			{
+				CRecList rl = GetMoves(moves);
+				bool wt = chess.whiteTurn;
+				foreach (CRec rec in rl)
+					if (!string.IsNullOrEmpty(rec.umo))
+					{
+						add = false;
+						int curBack = chess.MoveBack(rec.umo, wt) ? 1 : 0;
+						GetGames($"{moves} {rec.umo}".Trim(), back + curBack, ref list);
+					}
+			}
+			if (add)
+			{
+				list.Add(moves);
+				Console.Write($"\rgame {list.Count}");
+			}
+		}
+
+		CRecList GetMoves(string moves)
+		{
+			chess.SetFen();
+			chess.MakeMoves(moves);
+			ulong hash = GetHash();
+			CRecList rl = GetRecList(hash);
+			foreach (CRec rec in rl)
+				BmoToUmo(rec.move, out rec.umo);
+			return rl;
+		}
+
+		#endregion
+
+
+		#region load
+
+		public bool LoadFromFile()
+		{
+			return LoadFromFile(path);
+		}
+
+		public bool LoadFromFile(string p)
+		{
+			if (String.IsNullOrEmpty(p))
+				return false;
+			recList.Clear();
+			return AddFile(p);
+		}
 
 		public bool AddFile(string p)
 		{
@@ -307,143 +688,6 @@ namespace NSProgram
 				AddUci(uci);
 		}
 
-		public void Clear()
-		{
-			recList.Clear();
-		}
-
-		public int Delete(int c)
-		{
-			return recList.RecDelete(c);
-		}
-
-		public bool LoadFromFile(string p)
-		{
-			if (String.IsNullOrEmpty(p))
-				return false;
-			recList.Clear();
-			return AddFile(p);
-		}
-
-		public bool LoadFromFile()
-		{
-			return LoadFromFile(path);
-		}
-
-		void WriteUInt64(BinaryWriter writer, ulong v)
-		{
-			byte[] bytes = BitConverter.GetBytes(v);
-			if (BitConverter.IsLittleEndian)
-				Array.Reverse(bytes);
-			writer.Write(bytes);
-		}
-
-		ulong ReadUInt64(BinaryReader reader)
-		{
-			ulong v = reader.ReadUInt64();
-			if (BitConverter.IsLittleEndian)
-			{
-				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
-				return BitConverter.ToUInt64(bytes, 0);
-			}
-			return v;
-		}
-
-		void WriteUInt32(BinaryWriter writer, uint v)
-		{
-			byte[] bytes = BitConverter.GetBytes(v);
-			if (BitConverter.IsLittleEndian)
-				Array.Reverse(bytes);
-			writer.Write(bytes);
-		}
-
-		uint ReadUInt32(BinaryReader reader)
-		{
-			uint v = reader.ReadUInt32();
-			if (BitConverter.IsLittleEndian)
-			{
-				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
-				return BitConverter.ToUInt32(bytes, 0);
-			}
-			return v;
-		}
-
-		void WriteUInt16(BinaryWriter writer, ushort v)
-		{
-			byte[] bytes = BitConverter.GetBytes(v);
-			if (BitConverter.IsLittleEndian)
-				Array.Reverse(bytes);
-			writer.Write(bytes);
-		}
-
-		ushort ReadUInt16(BinaryReader reader)
-		{
-			ushort v = reader.ReadUInt16();
-			if (BitConverter.IsLittleEndian)
-			{
-				byte[] bytes = BitConverter.GetBytes(v).Reverse().ToArray();
-				return BitConverter.ToUInt16(bytes, 0);
-			}
-			return v;
-		}
-
-		public void SaveToFile(string path, int reduction = 0)
-		{
-			if ((maxRecords > 0) && (recList.Count > maxRecords))
-				Delete(recList.Count - maxRecords);
-			bool r = false;
-			try
-			{
-				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
-				using (BinaryWriter writer = new BinaryWriter(fs))
-				{
-					CRec last = new CRec();
-					recList.SortHash();
-					foreach (CRec rec in recList)
-					{
-						rec.weight >>= reduction;
-						if (rec.weight == 0)
-							continue;
-						if ((rec.hash == last.hash) && (rec.move == last.move))
-						{
-							int weight = rec.weight + last.weight;
-							if (weight > 0xffff)
-							{
-								r = true;
-								weight = 0xffff;
-							}
-							fs.Position = fs.Length - 16;
-							rec.weight = (ushort)weight;
-						}
-						WriteUInt64(writer, rec.hash);
-						WriteUInt16(writer, rec.move);
-						WriteUInt16(writer, rec.weight);
-						WriteUInt32(writer, rec.learn);
-						last = rec;
-					}
-				}
-			}
-			catch
-			{
-			}
-			if (r)
-				SaveToFile(path, 1);
-			else
-				if (Program.isLog && (recList.Count / 100 > lastCount / 100))
-				Program.log.Add($"book {recList.Count:N0} moves");
-			lastCount = recList.Count;
-		}
-
-		public void SaveToFile()
-		{
-			SaveToFile(path);
-		}
-
-		public bool IsWinner(int index, int count)
-		{
-			return (index & 1) != (count & 1);
-		}
-
 		public void AddUci(string[] moves, int limit = 0, bool all = true)
 		{
 			int count = moves.Length;
@@ -471,7 +715,7 @@ namespace NSProgram
 
 		public void AddUci(string moves, int limit = 0, bool all = true)
 		{
-			AddUci(moves.Split(' '),limit,all);
+			AddUci(moves.Split(' '), limit, all);
 		}
 
 		public void AddUci(List<string> moves, int limit = 0, bool all = true)
@@ -479,184 +723,12 @@ namespace NSProgram
 			AddUci(moves.ToArray(), limit, all);
 		}
 
-		CRecList GetRecList(ulong hash)
+		public bool IsWinner(int index, int count)
 		{
-			int first = recList.FindHash(hash);
-			CRecList rl = new CRecList();
-			for (int n = first; n < recList.Count; n++)
-			{
-				CRec r = recList[n];
-				if (r.hash == hash)
-					rl.Add(r);
-				if (r.hash > hash)
-					break;
-			}
-			return rl;
+			return (index & 1) != (count & 1);
 		}
 
-		public ulong GetHash()
-		{
-			string fen = chess.GetFen();
-			string[] chunks = fen.Split(' ');
-			ulong key = 0;
-			for (int y = 0; y < 8; y++)
-				for (int x = 0; x < 8; x++)
-				{
-					int n = y * 8 + x;
-					int fr = CChess.arrField[n];
-					int field = chess.g_board[fr];
-					int rank = (field & 7) - 1;
-					if (rank < 0)
-						continue;
-					int w = (field & CChess.colorWhite) > 0 ? 1 : 0;
-					int shift = (rank << 1) | w;
-					int i = 64 * shift + 8 * (7 - y) + x;
-					key ^= Random64[i];
-				}
-			if (chess.whiteTurn)
-				key ^= Random64[780];
-			if ((chess.g_castleRights & 1) != 0)
-				key ^= Random64[768];
-			if ((chess.g_castleRights & 2) != 0)
-				key ^= Random64[769];
-			if ((chess.g_castleRights & 4) != 0)
-				key ^= Random64[770];
-			if ((chess.g_castleRights & 8) != 0)
-				key ^= Random64[771];
-			string passing = chunks[3];
-			if (passing != "-")
-				key ^= Random64[772 + passing[0] - 'a'];
-			return key;
-		}
-
-		string GetMove(List<CRec> rl)
-		{
-			string move = String.Empty;
-			int w = 0;
-			foreach (CRec r in rl)
-			{
-				string m = BmoToUmo(r.move);
-				if (String.IsNullOrEmpty(m))
-					continue;
-				w += r.weight + 1;
-				if (CChess.random.Next(w) < r.weight)
-					move = m;
-			}
-			return move;
-		}
-
-		string BmoToUmo(ushort bmo)
-		{
-			if (bmo == 0)
-				return String.Empty;
-			int f = (bmo >> 6) & 0x3f;
-			int fr = (f >> 3) & 0x7;
-			int ff = f & 0x7;
-			int t = bmo & 0x3f;
-			int tr = (t >> 3) & 0x7;
-			int tf = t & 0x7;
-			int p = (bmo >> 12) & 0x7;
-			string umo = String.Empty;
-			string sf = "abcdefgh";
-			string sr = "12345678";
-			string promo = " nbrq";
-			umo += sf[ff];
-			umo += sr[fr];
-			umo += sf[tf];
-			umo += sr[tr];
-			if (p > 0)
-				umo += promo[p];
-			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
-			{
-				if (umo == "e1h1")
-					umo = "e1g1";
-				else if (umo == "e1a1")
-					umo = "e1c1";
-				else if (umo == "e8h8")
-					umo = "e8g8";
-				else if (umo == "e8a8")
-					umo = "e8c8";
-			}
-			if (chess.IsValidMove(umo, out _))
-				return umo;
-			return String.Empty;
-		}
-
-		public void ShowMoves(bool last = false)
-		{
-			Console.Write($"\r{recList.Count} moves");
-			if (last)
-			{
-				Console.WriteLine();
-				if (errors > 0)
-					Console.WriteLine($"{errors} errors");
-				errors = 0;
-			}
-		}
-
-		ushort UmoToBmo(string umo)
-		{
-			if (String.IsNullOrEmpty(umo))
-				return 0;
-			string sf = "abcdefgh";
-			string sr = "12345678";
-			string promo = " nbrq";
-			int ff = sf.IndexOf(umo[0]);
-			int fr = sr.IndexOf(umo[1]);
-			if ((chess.g_board[(7 - fr) * 8 + ff] & CChess.pieceKing) > 0)
-			{
-				if (umo == "e1g1")
-					umo = "e1h1";
-				else if (umo == "e1c1")
-					umo = "e1a1";
-				else if (umo == "e8g8")
-					umo = "e8h8";
-				else if (umo == "e8c8")
-					umo = "e8a8";
-			}
-			int tf = sf.IndexOf(umo[2]);
-			int tr = sr.IndexOf(umo[3]);
-			int p = umo.Length == 5 ? promo.IndexOf(umo[4]) : 0;
-			return (ushort)((p << 12) | (fr << 9) | (ff << 6) | (tr << 3) | tf);
-		}
-
-		public string GetMove()
-		{
-			ulong hash = GetHash();
-			List<CRec> rl = GetRecList(hash);
-			return GetMove(rl);
-		}
-
-		public void InfoMoves(string moves = "")
-		{
-			chess.SetFen();
-			if (!chess.MakeMoves(moves))
-				Console.WriteLine("wrong moves");
-			else
-			{
-				ulong hash = GetHash();
-				CRecList rl = GetRecList(hash);
-				rl.SortWeight();
-				if (rl.Count == 0)
-					Console.WriteLine("no moves found");
-				else
-				{
-					Console.WriteLine("id move  score");
-					Console.WriteLine();
-					int i = 0;
-					foreach (CRec e in rl)
-					{
-						string umo = BmoToUmo(e.move);
-						Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.weight));
-					}
-				}
-			}
-		}
-
-		public void ShowInfo()
-		{
-			InfoMoves();
-		}
+		#endregion
 
 	}
 }

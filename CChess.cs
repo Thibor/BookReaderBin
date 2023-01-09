@@ -184,7 +184,7 @@ namespace NSChess
 			string faf = showFile ? umo.Substring(0, 1) : String.Empty;
 			string far = showRank ? umo.Substring(1, 1) : String.Empty;
 			string fb = umo.Substring(2, 2);
-			string attack = isAttack ? "x" : "";
+			string attack = isAttack ? "x" : string.Empty;
 			string promo = "";
 			if ((flags & moveflagPromoteKnight) > 0)
 				promo = "=N";
@@ -217,17 +217,17 @@ namespace NSChess
 				if (UmoToSan(umo).Trim(charsToTrim) == san)
 					return umo;
 			}
-			return "";
+			return string.Empty;
 		}
 
-		public static int UmoToIndex(string emo)
+		public static int UmoToIndex(string umo)
 		{
-			if (String.IsNullOrEmpty(emo))
+			if (String.IsNullOrEmpty(umo))
 				return -1;
 			string file = "abcdefgh";
 			string rank = "87654321";
-			int x = file.IndexOf(emo[0]);
-			int y = rank.IndexOf(emo[1]);
+			int x = file.IndexOf(umo[0]);
+			int y = rank.IndexOf(umo[1]);
 			return y * 8 + x;
 		}
 
@@ -268,7 +268,7 @@ namespace NSChess
 
 		public bool SetFen(string fen = defFen)
 		{
-			if (fen == "")
+			if (string.IsNullOrEmpty(fen))
 				fen = defFen;
 			string[] chunks = fen.Split(' ');
 			if (chunks.Length < 4)
@@ -731,10 +731,10 @@ namespace NSChess
 			return false;
 		}
 
-		public bool IsValidMove(string umo, out int emo)
+		public bool IsValidMove(string umo, out int emo,bool norep = false)
 		{
 			emo = 0;
-			List<int> moves = GenerateValidMoves(out _);
+			List<int> moves = GenerateValidMoves(out _,norep);
 			foreach (int m in moves)
 				if (EmoToUmo(m) == umo)
 				{
@@ -825,7 +825,7 @@ namespace NSChess
 
 		public static void UmoToSD(string umo, out int s, out int d)
 		{
-			if (umo == "")
+			if (umo == string.Empty)
 			{
 				s = -1;
 				d = -1;

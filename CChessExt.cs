@@ -9,6 +9,23 @@ namespace NSProgram
 {
 	class CChessExt:CChess
 	{
+
+		public bool MoveBack(string umo,bool wt)
+		{
+			UmoToSD(umo,out int s,out int d);
+			int sx = s % 8;
+			int dx = d % 8;
+			int sy = s / 8;
+			int dy = d / 8;
+			if (wt)
+				(sy, dy) = (dy, sy);
+			if (dy < sy)
+				return true;
+			if (dy > sy)
+				return false;
+			return Math.Abs(sx - 3.5) < Math.Abs(dx - 3.5);
+		}
+
 		public bool Is2ToEnd(out string myMov, out string enMov)
 		{
 			myMov = "";

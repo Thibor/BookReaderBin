@@ -12,6 +12,7 @@ namespace NSProgram
 		public ushort move = 0;
 		public ushort weight = 1;
 		public uint learn = 0;
+		public string umo = string.Empty;
 	}
 
 	class CRecList : List<CRec>
