@@ -167,7 +167,7 @@ namespace NSProgram
 								Console.WriteLine($"option name Log type check default false");
 								Console.WriteLine($"option name Limit read moves type spin default {bookLimitR} min 0 max 100");
 								Console.WriteLine($"option name Limit write moves type spin default {bookLimitW} min 0 max 100");
-								Console.WriteLine("optionok");
+								Console.WriteLine("optionend");
 								break;
 							case "setoption":
 								switch (uci.GetValue("name", "value").ToLower())
