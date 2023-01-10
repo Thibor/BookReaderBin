@@ -539,7 +539,7 @@ namespace NSProgram
 		List<string> GetGames()
 		{
 			List<string> sl = new List<string>();
-			GetGames(string.Empty, 0, ref sl);
+			GetGames(string.Empty, 0,0,1, ref sl);
 			Console.WriteLine();
 			Console.WriteLine("finish");
 			Console.Beep();
@@ -547,25 +547,34 @@ namespace NSProgram
 			return sl;
 		}
 
-		void GetGames(string moves, int back, ref List<string> list)
+		void GetGames(string moves, int back, double proT, double proU,ref List<string> list)
 		{
 			bool add = true;
 			if (back < 5)
 			{
 				CRecList rl = GetMoves(moves);
-				bool wt = chess.whiteTurn;
-				foreach (CRec rec in rl)
-					if (!string.IsNullOrEmpty(rec.umo))
+				if (rl.Count > 0)
+				{
+					proU /= rl.Count;
+					bool wt = chess.whiteTurn;
+					for (int n = 0; n < rl.Count; n++)
 					{
-						add = false;
-						int curBack = chess.MoveBack(rec.umo, wt) ? 1 : 0;
-						GetGames($"{moves} {rec.umo}".Trim(), back + curBack, ref list);
+						CRec rec = rl[n];
+						if (!string.IsNullOrEmpty(rec.umo))
+						{
+							add = false;
+							int curBack = chess.MoveBack(rec.umo, wt) ? 1 : 0;
+							double p = proT + n * proU;
+							GetGames($"{moves} {rec.umo}".Trim(), back + curBack, p, proU, ref list);
+						}
 					}
+				}
 			}
 			if (add)
 			{
 				list.Add(moves);
-				Console.Write($"\rgame {list.Count}");
+				double pro = (proT + proU) * 100.0;
+				Console.Write($"\r{pro:N4} %");
 			}
 		}
 
