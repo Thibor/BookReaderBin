@@ -222,6 +222,7 @@ namespace NSProgram
 
 		public void Clear()
 		{
+			reduction = false;
 			recList.Clear();
 		}
 
