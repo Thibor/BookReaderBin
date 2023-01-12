@@ -494,14 +494,8 @@ namespace NSProgram
 					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
-						if (rec.weight == 0)
+						if ((rec.weight == 0)|| ((rec.hash == last.hash) && (rec.move == last.move)))
 							continue;
-						if ((rec.hash == last.hash) && (rec.move == last.move))
-						{
-							int weight = rec.weight + last.weight;
-							fs.Position = fs.Length - 16;
-							rec.weight = (ushort)weight;
-						}
 						WriteUInt64(writer, rec.hash);
 						WriteUInt16(writer, rec.move);
 						WriteUInt16(writer, rec.weight);
