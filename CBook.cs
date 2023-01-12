@@ -1,6 +1,7 @@
 ﻿using NSChess;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,6 +10,7 @@ namespace NSProgram
 {
 	class CBook
 	{
+		bool reduction = false;
 		int lastCount = 0;
 		readonly ulong[] Random64 = {
    0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2,
@@ -216,6 +218,7 @@ namespace NSProgram
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
+		Stopwatch stopWatch = new Stopwatch();
 
 		public void Clear()
 		{
@@ -476,11 +479,12 @@ namespace NSProgram
 			return false;
 		}
 
-		public bool SaveToBin(string path, int reduction = 0)
+		public bool SaveToBin(string path)
 		{
+			if (reduction)
+				Reduction();
 			if ((maxRecords > 0) && (recList.Count > maxRecords))
 				Delete(recList.Count - maxRecords);
-			bool r = false;
 			try
 			{
 				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -490,17 +494,11 @@ namespace NSProgram
 					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
-						rec.weight >>= reduction;
 						if (rec.weight == 0)
 							continue;
 						if ((rec.hash == last.hash) && (rec.move == last.move))
 						{
 							int weight = rec.weight + last.weight;
-							if (weight > 0xffff)
-							{
-								r = true;
-								weight = 0xffff;
-							}
 							fs.Position = fs.Length - 16;
 							rec.weight = (ushort)weight;
 						}
@@ -515,10 +513,7 @@ namespace NSProgram
 			catch
 			{
 			}
-			if (r)
-				SaveToBin(path, 1);
-			else
-				if (Program.isLog && (recList.Count / 100 > lastCount / 100))
+			if (Program.isLog && (recList.Count / 100 > lastCount / 100))
 				Program.log.Add($"book {recList.Count:N0} moves");
 			lastCount = recList.Count;
 			return true;
@@ -536,10 +531,16 @@ namespace NSProgram
 			return true;
 		}
 
+		void Reduction()
+		{
+			for (int n = 0; n < recList.Count; n++)
+				recList[n].weight >>= 1;
+		}
+
 		List<string> GetGames()
 		{
 			List<string> sl = new List<string>();
-			GetGames(string.Empty, 0,0,1, ref sl);
+			GetGames(string.Empty, 0, 0, 1, ref sl);
 			Console.WriteLine();
 			Console.WriteLine("finish");
 			Console.Beep();
@@ -547,7 +548,7 @@ namespace NSProgram
 			return sl;
 		}
 
-		void GetGames(string moves, int back, double proT, double proU,ref List<string> list)
+		void GetGames(string moves, int back, double proT, double proU, ref List<string> list)
 		{
 			bool add = true;
 			if (back < 5)
@@ -589,7 +590,7 @@ namespace NSProgram
 			return rl;
 		}
 
-		#endregion
+		#endregion save
 
 
 		#region load
@@ -603,8 +604,13 @@ namespace NSProgram
 		{
 			if (String.IsNullOrEmpty(p))
 				return false;
+			stopWatch.Restart();
 			recList.Clear();
-			return AddFile(p);
+			bool result = AddFile(p);
+			stopWatch.Stop();
+			TimeSpan ts = stopWatch.Elapsed;
+			Console.WriteLine($"info string Loaded in {ts.Seconds}.{ts.Milliseconds} seconds");
+			return result;
 		}
 
 		public bool AddFile(string p)
@@ -623,6 +629,7 @@ namespace NSProgram
 
 		public bool AddFileBin(string p)
 		{
+			reduction = false;
 			path = p;
 			try
 			{
@@ -639,6 +646,8 @@ namespace NSProgram
 							learn = ReadUInt32(reader)
 						};
 						recList.Add(rec);
+						if (rec.weight > ushort.MaxValue >> 1)
+							reduction = true;
 					}
 				}
 			}
