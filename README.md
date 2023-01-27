@@ -16,6 +16,7 @@ To use this program you need install  <a href="https://dotnet.microsoft.com/down
 
 ## Console commands
 
+**help** - displays basic commands<br/>
 **book load** [filename].[bin|uci|pgn] - clear and add<br/>
 **book save** [filename].[bin|uci] - save book to the file<br/>
 **book addfile** [filename].[bin|uci|pgn] - adds moves from another book<br/>

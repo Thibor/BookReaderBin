@@ -115,7 +115,7 @@ namespace NSProgram
 				if ((msg == "help") || (msg == "book"))
 				{
 					Console.WriteLine("book load [filename].[bin|pgn|uci] - clear and add moves from file");
-					Console.WriteLine("book save [filename].[bin] - save book to the file");
+					Console.WriteLine("book save [filename].[bin|uci] - save book to the file");
 					Console.WriteLine("book addfile [filename].[bin|pgn|uci] - add moves to the book");
 					Console.WriteLine("book clear - clear all moves from the book");
 					Console.WriteLine("book delete [x] - delete x moves from the book");
@@ -165,8 +165,8 @@ namespace NSProgram
 								Console.WriteLine($"option name Book file type string default book{CBook.defExt}");
 								Console.WriteLine($"option name Write type check default false");
 								Console.WriteLine($"option name Log type check default false");
-								Console.WriteLine($"option name Limit read moves type spin default {bookLimitR} min 0 max 100");
-								Console.WriteLine($"option name Limit write moves type spin default {bookLimitW} min 0 max 100");
+								Console.WriteLine($"option name Limit read ply type spin default {bookLimitR} min 0 max 100");
+								Console.WriteLine($"option name Limit write ply type spin default {bookLimitW} min 0 max 100");
 								Console.WriteLine("optionend");
 								break;
 							case "setoption":
@@ -181,10 +181,10 @@ namespace NSProgram
 									case "log":
 										isLog = uci.GetValue("value") == "true";
 										break;
-									case "limit read":
+									case "limit read ply":
 										bookLimitR = uci.GetInt("value");
 										break;
-									case "limit write":
+									case "limit write ply":
 										bookLimitW = uci.GetInt("value");
 										break;
 								}
