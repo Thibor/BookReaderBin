@@ -17,6 +17,32 @@ namespace NSProgram
 
 	class CRecList : List<CRec>
 	{
+		public bool AddRec(CRec rec)
+		{
+			int index = FindRec(rec);
+			if (index == Count)
+				Add(rec);
+			else
+			{
+				CRec r = this[index];
+				if ((r.hash == rec.hash) && (r.move == rec.move))
+				{
+					this[index].weight++;
+					return false;
+				}
+				else
+					Insert(index, rec);
+			}
+			return true;
+		}
+
+		public int GetWeight()
+		{
+			int result = 0;
+			foreach (CRec rec in this)
+				result += rec.weight;
+			return result;
+		}
 
 		public int RecDelete(int count)
 		{
@@ -34,7 +60,7 @@ namespace NSProgram
 
 		public void DeleteRec(CRec r)
 		{
-			for(int n= Count - 1; n >= 0; n--)
+			for (int n = Count - 1; n >= 0; n--)
 			{
 				CRec rec = this[n];
 				if ((rec.hash == r.hash) && (rec.move == r.move))
@@ -59,16 +85,35 @@ namespace NSProgram
 			}
 		}
 
+		public int CompareHash(CRec r1, CRec r2)
+		{
+			if (r1.hash > r2.hash)
+				return 1;
+			if (r1.hash < r2.hash)
+				return -1;
+			return r1.move - r2.move;
+		}
+
+		public int FindRec(CRec r)
+		{
+			int first = -1;
+			int last = Count;
+			while (true)
+			{
+				if (last - first == 1)
+					return last;
+				int middle = (first + last) >> 1;
+				CRec rec = this[middle];
+				if (CompareHash(r, rec) <= 0)
+					last = middle;
+				else
+					first = middle;
+			}
+		}
+
 		public void SortHash()
 		{
-			Sort(delegate (CRec r1, CRec r2)
-			{
-				if (r1.hash > r2.hash)
-					return 1;
-				if (r1.hash < r2.hash)
-					return -1;
-				return r1.move - r2.move;
-			});
+			Sort(CompareHash);
 		}
 
 		public void SortWeight()

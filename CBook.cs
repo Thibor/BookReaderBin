@@ -495,7 +495,7 @@ namespace NSProgram
 					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
-						if ((rec.weight == 0)|| ((rec.hash == last.hash) && (rec.move == last.move)))
+						if ((rec.weight == 0) || ((rec.hash == last.hash) && (rec.move == last.move)))
 							continue;
 						WriteUInt64(writer, rec.hash);
 						WriteUInt16(writer, rec.move);
@@ -517,7 +517,7 @@ namespace NSProgram
 		public bool SaveToUci(string p)
 		{
 			List<string> sl = GetGames();
-			FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None);
+			using (FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None))
 			using (StreamWriter sw = new StreamWriter(fs))
 			{
 				foreach (String uci in sl)
@@ -701,26 +701,26 @@ namespace NSProgram
 				AddUci(uci);
 		}
 
-		public void AddUci(string[] moves, int limit = 0, bool all = true)
+		public void AddUci(string[] moves, int plyLW = 0, bool addLose = true)
 		{
 			int count = moves.Length;
 			chess.SetFen();
 			for (int n = 0; n < moves.Length; n++)
 			{
-				if ((limit > 0) && (limit <= n))
+				if ((plyLW > 0) && (plyLW <= n))
 					break;
 				string umo = moves[n];
 				int emo = chess.UmoToEmo(umo);
 				if (emo == 0)
 					return;
-				if (IsWinner(n, count) || all)
+				if (IsWinner(n, count) || addLose)
 				{
 					CRec rec = new CRec
 					{
 						hash = GetHash(),
 						move = UmoToBmo(umo)
 					};
-					recList.Add(rec);
+					recList.AddRec(rec);
 				}
 				chess.MakeMove(umo, out _);
 			}
