@@ -25,11 +25,11 @@ namespace NSProgram
 			/// <summary>
 			/// Limit ply to read.
 			/// </summary>
-			int bookLimitR = 32;
+			int bookLimitR = 16;
 			/// <summary>
 			/// Limit ply to write.
 			/// </summary>
-			int bookLimitW = 32;
+			int bookLimitW = 16;
 			CUci uci = new CUci();
 			CChessExt chess = CBook.chess;
 			string ax = "-bf";
