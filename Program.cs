@@ -212,7 +212,7 @@ namespace NSProgram
 						break;
 					case "go":
 						string move = String.Empty;
-						if ((bookLimitR == 0) || (bookLimitR > chess.g_moveNumber))
+						if ((bookLimitR == 0) || (bookLimitR > chess.halfMove))
 						{
 							move = book.GetMove();
 							if (!chess.IsValidMove(move, out _))

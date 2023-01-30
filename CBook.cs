@@ -218,7 +218,195 @@ namespace NSProgram
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
-		Stopwatch stopWatch = new Stopwatch();
+		readonly Stopwatch stopWatch = new Stopwatch();
+
+		#region file bin
+
+		public bool AddFileBin(string p)
+		{
+			if (!File.Exists(p))
+				return true;
+			reduction = false;
+			path = p;
+			try
+			{
+				using (FileStream fs = File.Open(p, FileMode.Open, FileAccess.Read, FileShare.Read))
+				using (BinaryReader reader = new BinaryReader(fs))
+				{
+					while (reader.BaseStream.Position != reader.BaseStream.Length)
+					{
+						CRec rec = new CRec
+						{
+							hash = ReadUInt64(reader),
+							move = ReadUInt16(reader),
+							weight = ReadUInt16(reader),
+							learn = ReadUInt32(reader)
+						};
+						recList.Add(rec);
+						if (rec.weight > ushort.MaxValue >> 1)
+							reduction = true;
+					}
+				}
+			}
+			catch
+			{
+				return false;
+			}
+			lastCount = recList.Count;
+			return true;
+		}
+
+		public bool SaveToBin(string path)
+		{
+			if (reduction)
+				Reduction();
+			if ((maxRecords > 0) && (recList.Count > maxRecords))
+				Delete(recList.Count - maxRecords);
+			try
+			{
+				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
+				using (BinaryWriter writer = new BinaryWriter(fs))
+				{
+					CRec last = new CRec();
+					recList.SortHash();
+					foreach (CRec rec in recList)
+					{
+						if ((rec.weight == 0) || ((rec.hash == last.hash) && (rec.move == last.move)))
+							continue;
+						WriteUInt64(writer, rec.hash);
+						WriteUInt16(writer, rec.move);
+						WriteUInt16(writer, rec.weight);
+						WriteUInt32(writer, rec.learn);
+						last = rec;
+					}
+				}
+			}
+			catch
+			{
+			}
+			if (Program.isLog && (recList.Count / 100 > lastCount / 100))
+				Program.log.Add($"book {recList.Count:N0} moves");
+			lastCount = recList.Count;
+			return true;
+		}
+
+		#endregion file bin
+
+		#region file uci
+
+		bool AddFileUci(string p)
+		{
+			if (!File.Exists(p))
+				return true;
+			string[] lines = File.ReadAllLines(p);
+			foreach (string uci in lines)
+				AddUci(uci);
+			return true;
+		}
+
+		public bool SaveToUci(string p)
+		{
+			List<string> sl = GetGames();
+			using (FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None))
+			using (StreamWriter sw = new StreamWriter(fs))
+			{
+				foreach (String uci in sl)
+					sw.WriteLine(uci);
+			}
+			Console.WriteLine("finish");
+			Console.Beep();
+			return true;
+		}
+
+		#endregion file uci
+
+		#region file pgn
+
+		bool AddFilePgn(string p)
+		{
+			if (!File.Exists(p))
+				return true;
+			List<string> listPgn = File.ReadAllLines(p).ToList();
+			string movesUci = String.Empty;
+			chess.SetFen();
+			foreach (string m in listPgn)
+			{
+				string cm = m.Trim();
+				if (String.IsNullOrEmpty(cm))
+					continue;
+				if (cm[0] == '[')
+					continue;
+				cm = Regex.Replace(cm, @"\.(?! |$)", ". ");
+				if (cm.StartsWith("1. "))
+				{
+					AddUci(movesUci);
+					ShowMoves();
+					movesUci = String.Empty;
+					chess.SetFen();
+				}
+				string[] arrMoves = cm.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+				foreach (string san in arrMoves)
+				{
+					if (Char.IsDigit(san[0]))
+						continue;
+					string umo = chess.SanToUmo(san);
+					if (umo == String.Empty)
+					{
+						errors++;
+						break;
+					}
+					movesUci += $" {umo}";
+					int emo = chess.UmoToEmo(umo);
+					chess.MakeMove(emo);
+				}
+			}
+			AddUci(movesUci);
+			ShowMoves();
+			return true;
+		}
+
+		public bool SaveToPgn(string p)
+		{
+			List<string> sl = GetGames();
+			int line = 0;
+			using (FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None))
+			using (StreamWriter sw = new StreamWriter(fs))
+			{
+				foreach (string uci in sl)
+				{
+					string[] arrMoves = uci.Split();
+					chess.SetFen();
+					string pgn = String.Empty;
+					foreach (string umo in arrMoves)
+					{
+						string san = chess.UmoToSan(umo);
+						if (san == String.Empty)
+							break;
+						int number = (chess.halfMove >> 1) + 1;
+						if (chess.whiteTurn)
+							pgn += $"{number}. {san} ";
+						else
+							pgn += $"{san} ";
+						int emo = chess.UmoToEmo(umo);
+						chess.MakeMove(emo);
+					}
+					pgn += "1/2-1/2";
+					sw.WriteLine();
+					sw.WriteLine("[White \"White\"]");
+					sw.WriteLine("[Black \"Black\"]");
+					sw.WriteLine("[Result \"1/2-1/2\"]");
+					sw.WriteLine();
+					sw.WriteLine(pgn.Trim());
+					Console.Write($"\rgames {++line}");
+				}
+			}
+			Console.WriteLine();
+			Console.WriteLine("finish");
+			Console.Beep();
+			return true;
+		}
+
+		#endregion file pgn
 
 		public void Clear()
 		{
@@ -463,8 +651,6 @@ namespace NSProgram
 			InfoMoves();
 		}
 
-		#region save
-
 		public void SaveToFile()
 		{
 			SaveToFile(path);
@@ -475,55 +661,11 @@ namespace NSProgram
 			string ext = Path.GetExtension(p).ToLower();
 			if (ext == defExt)
 				return SaveToBin(p);
-			if (ext == ".uci")
+			else if (ext == ".uci")
 				return SaveToUci(p);
+			else if (ext == ".pgn")
+				return SaveToPgn(p);
 			return false;
-		}
-
-		public bool SaveToBin(string path)
-		{
-			if (reduction)
-				Reduction();
-			if ((maxRecords > 0) && (recList.Count > maxRecords))
-				Delete(recList.Count - maxRecords);
-			try
-			{
-				using (FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
-				using (BinaryWriter writer = new BinaryWriter(fs))
-				{
-					CRec last = new CRec();
-					recList.SortHash();
-					foreach (CRec rec in recList)
-					{
-						if ((rec.weight == 0) || ((rec.hash == last.hash) && (rec.move == last.move)))
-							continue;
-						WriteUInt64(writer, rec.hash);
-						WriteUInt16(writer, rec.move);
-						WriteUInt16(writer, rec.weight);
-						WriteUInt32(writer, rec.learn);
-						last = rec;
-					}
-				}
-			}
-			catch
-			{
-			}
-			if (Program.isLog && (recList.Count / 100 > lastCount / 100))
-				Program.log.Add($"book {recList.Count:N0} moves");
-			lastCount = recList.Count;
-			return true;
-		}
-
-		public bool SaveToUci(string p)
-		{
-			List<string> sl = GetGames();
-			using (FileStream fs = File.Open(p, FileMode.Create, FileAccess.Write, FileShare.None))
-			using (StreamWriter sw = new StreamWriter(fs))
-			{
-				foreach (String uci in sl)
-					sw.WriteLine(uci);
-			}
-			return true;
 		}
 
 		void Reduction()
@@ -537,8 +679,7 @@ namespace NSProgram
 			List<string> sl = new List<string>();
 			GetGames(string.Empty, 0, 0, 1, ref sl);
 			Console.WriteLine();
-			Console.WriteLine("finish");
-			Console.Beep();
+			Console.WriteLine($"{sl.Count:N0} games");
 			sl.Sort();
 			return sl;
 		}
@@ -585,26 +726,19 @@ namespace NSProgram
 			return rl;
 		}
 
-		#endregion save
-
-
-		#region load
-
-		public bool LoadFromFile()
-		{
-			return LoadFromFile(path);
-		}
-
-		public bool LoadFromFile(string p)
+		public bool LoadFromFile(string p = "")
 		{
 			if (String.IsNullOrEmpty(p))
-				return false;
+				if (String.IsNullOrEmpty(path))
+					return false;
+				else
+					return LoadFromFile(path);
 			stopWatch.Restart();
 			recList.Clear();
 			bool result = AddFile(p);
 			stopWatch.Stop();
 			TimeSpan ts = stopWatch.Elapsed;
-			Console.WriteLine($"info string Loaded in {ts.Seconds}.{ts.Milliseconds} seconds");
+			Console.WriteLine($"info string Loaded in {ts.TotalSeconds:N2} seconds");
 			return result;
 		}
 
@@ -615,90 +749,11 @@ namespace NSProgram
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
 				return AddFileBin(p);
-			else if (ext == ".pgn")
-				AddFilePgn(p);
 			else if (ext == ".uci")
-				AddFileUci(p);
-			return true;
-		}
-
-		public bool AddFileBin(string p)
-		{
-			reduction = false;
-			path = p;
-			try
-			{
-				using (FileStream fs = File.Open(p, FileMode.Open, FileAccess.Read, FileShare.Read))
-				using (BinaryReader reader = new BinaryReader(fs))
-				{
-					while (reader.BaseStream.Position != reader.BaseStream.Length)
-					{
-						CRec rec = new CRec
-						{
-							hash = ReadUInt64(reader),
-							move = ReadUInt16(reader),
-							weight = ReadUInt16(reader),
-							learn = ReadUInt32(reader)
-						};
-						recList.Add(rec);
-						if (rec.weight > ushort.MaxValue >> 1)
-							reduction = true;
-					}
-				}
-			}
-			catch
-			{
-				return false;
-			}
-			lastCount = recList.Count;
-			return true;
-		}
-
-		void AddFilePgn(string p)
-		{
-			List<string> listPgn = File.ReadAllLines(p).ToList();
-			string movesUci = String.Empty;
-			chess.SetFen();
-			foreach (string m in listPgn)
-			{
-				string cm = m.Trim();
-				if (String.IsNullOrEmpty(cm))
-					continue;
-				if (cm[0] == '[')
-					continue;
-				cm = Regex.Replace(cm, @"\.(?! |$)", ". ");
-				if (cm.StartsWith("1. "))
-				{
-					AddUci(movesUci);
-					ShowMoves();
-					movesUci = String.Empty;
-					chess.SetFen();
-				}
-				string[] arrMoves = cm.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-				foreach (string san in arrMoves)
-				{
-					if (Char.IsDigit(san[0]))
-						continue;
-					string umo = chess.SanToUmo(san);
-					if (umo == String.Empty)
-					{
-						errors++;
-						break;
-					}
-					movesUci += $" {umo}";
-					int emo = chess.UmoToEmo(umo);
-					chess.MakeMove(emo);
-				}
-			}
-			AddUci(movesUci);
-			ShowMoves();
-		}
-
-		void AddFileUci(string p)
-		{
-			string[] lines = File.ReadAllLines(p);
-			foreach (string uci in lines)
-				AddUci(uci);
+				return AddFileUci(p);
+			else if (ext == ".pgn")
+				return AddFilePgn(p);
+			return false;
 		}
 
 		public void AddUci(string[] moves, int plyLW = 0, bool addLose = true)
@@ -740,8 +795,6 @@ namespace NSProgram
 		{
 			return (index & 1) != (count & 1);
 		}
-
-		#endregion
 
 	}
 }

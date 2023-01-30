@@ -44,7 +44,7 @@ namespace NSChess
 		ulong g_hash = 0;
 		protected int g_passing = 0;
 		public int g_move50 = 0;
-		public int g_moveNumber = 0;
+		public int halfMove = 0;
 		public bool g_inCheck = false;
 		int g_lastCastle = 0;
 		bool adjInsufficient = false;
@@ -339,12 +339,12 @@ namespace NSChess
 				g_castleRights |= 8;
 			g_passing = UmoToSquare(chunks[3]);
 			g_move50 = chunks.Length < 5 ? 0 : Int32.Parse(chunks[4]);
-			g_moveNumber = chunks.Length < 6 ? 1 : Int32.Parse(chunks[5]);
-			if (g_moveNumber > 0)
-				g_moveNumber--;
-			g_moveNumber <<= 1;
+			halfMove = chunks.Length < 6 ? 1 : Int32.Parse(chunks[5]);
+			if (halfMove > 0)
+				halfMove--;
+			halfMove <<= 1;
 			if (!whiteTurn)
-				g_moveNumber++;
+				halfMove++;
 			undoIndex = g_move50;
 			return true;
 		}
@@ -422,7 +422,7 @@ namespace NSChess
 
 		public string GetFen()
 		{
-			return GetEpd() + ' ' + g_move50 + ' ' + ((g_moveNumber >> 1) + 1);
+			return GetEpd() + ' ' + g_move50 + ' ' + ((halfMove >> 1) + 1);
 		}
 
 		#endregion
@@ -612,7 +612,7 @@ namespace NSChess
 			}
 			g_board[capi] = captured;
 			whiteTurn ^= true;
-			g_moveNumber--;
+			halfMove--;
 		}
 
 		public void MakeMove(int emo)
@@ -681,7 +681,7 @@ namespace NSChess
 			g_board[fr] = colorEmpty;
 			g_castleRights &= boardCastle[fr] & boardCastle[to];
 			whiteTurn ^= true;
-			g_moveNumber++;
+			halfMove++;
 		}
 
 		public bool MakeMove(string umo, out int emo, out int piece)
