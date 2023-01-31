@@ -343,7 +343,7 @@ namespace NSProgram
 
 		#region file pgn
 
-		bool AddFilePgn(string p)
+		bool AddFilePgn(string p, bool show = false)
 		{
 			if (!File.Exists(p))
 				return true;
@@ -361,7 +361,8 @@ namespace NSProgram
 				if (cm.StartsWith("1. "))
 				{
 					AddUci(movesUci);
-					ShowMoves();
+					if (show)
+						Console.Write($"\rAdded {recList.Count} moves");
 					movesUci = String.Empty;
 					chess.SetFen();
 				}
@@ -382,7 +383,13 @@ namespace NSProgram
 				}
 			}
 			AddUci(movesUci);
-			ShowMoves();
+			if (show)
+			{
+				Console.WriteLine();
+				Console.WriteLine($"Found {errors:N2} errors");
+				Console.WriteLine("Finish");
+				Console.Beep();
+			}
 			return true;
 		}
 
@@ -600,18 +607,6 @@ namespace NSProgram
 			return chess.IsValidMove(umo, out _, true);
 		}
 
-		public void ShowMoves(bool last = false)
-		{
-			Console.Write($"\r{recList.Count} moves");
-			if (last)
-			{
-				Console.WriteLine();
-				if (errors > 0)
-					Console.WriteLine($"{errors} errors");
-				errors = 0;
-			}
-		}
-
 		ushort UmoToBmo(string umo)
 		{
 			if (String.IsNullOrEmpty(umo))
@@ -674,7 +669,7 @@ namespace NSProgram
 			InfoMoves();
 		}
 
-		public bool SaveToFile(string p = "",bool show = false)
+		public bool SaveToFile(string p = "", bool show = false)
 		{
 			if (string.IsNullOrEmpty(p))
 				if (string.IsNullOrEmpty(path))
@@ -688,7 +683,7 @@ namespace NSProgram
 				return SaveToUci(p);
 			else if (ext == ".pgn")
 				return SaveToPgn(p);
-			if(show)
+			if (show)
 				Console.WriteLine("Book is saved");
 			return false;
 		}
@@ -749,9 +744,9 @@ namespace NSProgram
 			return rl;
 		}
 
-		public bool LoadFromFile(string p = "",bool show = false)
+		public bool LoadFromFile(string p = "", bool show = false)
 		{
-			if(show && !File.Exists(p))
+			if (show && !File.Exists(p))
 				Console.WriteLine("File not found");
 			if (String.IsNullOrEmpty(p))
 				if (String.IsNullOrEmpty(path))
