@@ -10,7 +10,7 @@ namespace NSProgram
 	{
 		public ulong hash = 0;
 		public ushort move = 0;
-		public ushort weight = 1;
+		public ushort games = 1;
 		public uint learn = 0;
 		public string umo = string.Empty;
 	}
@@ -27,7 +27,7 @@ namespace NSProgram
 				CRec r = this[index];
 				if ((r.hash == rec.hash) && (r.move == rec.move))
 				{
-					this[index].weight++;
+					this[index].games++;
 					return false;
 				}
 				else
@@ -40,7 +40,7 @@ namespace NSProgram
 		{
 			int result = 0;
 			foreach (CRec rec in this)
-				result += rec.weight;
+				result += rec.games;
 			return result;
 		}
 
@@ -120,7 +120,7 @@ namespace NSProgram
 		{
 			Sort(delegate (CRec r1, CRec r2)
 			{
-				return r2.weight - r1.weight;
+				return r2.games - r1.games;
 			});
 		}
 

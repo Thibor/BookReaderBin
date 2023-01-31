@@ -7,12 +7,12 @@ using NSChess;
 
 namespace NSProgram
 {
-	class CChessExt:CChess
+	class CChessExt : CChess
 	{
 
-		public bool MoveBack(string umo,bool wt)
+		public int MoveProgress(string umo, bool wt)
 		{
-			UmoToSD(umo,out int s,out int d);
+			UmoToSD(umo, out int s, out int d);
 			int sx = s % 8;
 			int dx = d % 8;
 			int sy = s / 8;
@@ -20,10 +20,16 @@ namespace NSProgram
 			if (wt)
 				(sy, dy) = (dy, sy);
 			if (dy < sy)
-				return true;
+				return -1;
 			if (dy > sy)
-				return false;
-			return Math.Abs(sx - 3.5) < Math.Abs(dx - 3.5);
+				return 1;
+			double ms = Math.Abs(sx - 3.5);
+			double md = Math.Abs(dx - 3.5);
+			if (ms < md)
+				return -1;
+			if (ms > md)
+				return 1;
+			return sy * 8 + sx > dy * 8 + dx ? -1 : 1;
 		}
 
 		public bool Is2ToEnd(out string myMov, out string enMov)

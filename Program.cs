@@ -161,6 +161,9 @@ namespace NSProgram
 							case "delete":
 								book.Delete(uci.GetInt("delete"));
 								break;
+							case "reset":
+								book.Reset();
+								break;
 							case "getoption":
 								Console.WriteLine($"option name Book file type string default book{CBook.defExt}");
 								Console.WriteLine($"option name Write type check default false");

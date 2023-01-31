@@ -239,11 +239,11 @@ namespace NSProgram
 						{
 							hash = ReadUInt64(reader),
 							move = ReadUInt16(reader),
-							weight = ReadUInt16(reader),
+							games = ReadUInt16(reader),
 							learn = ReadUInt32(reader)
 						};
 						recList.Add(rec);
-						if (rec.weight > ushort.MaxValue >> 1)
+						if (rec.games > ushort.MaxValue >> 1)
 							reduction = true;
 					}
 				}
@@ -271,11 +271,11 @@ namespace NSProgram
 					recList.SortHash();
 					foreach (CRec rec in recList)
 					{
-						if ((rec.weight == 0) || ((rec.hash == last.hash) && (rec.move == last.move)))
+						if ((rec.games == 0) || ((rec.hash == last.hash) && (rec.move == last.move)))
 							continue;
 						WriteUInt64(writer, rec.hash);
 						WriteUInt16(writer, rec.move);
-						WriteUInt16(writer, rec.weight);
+						WriteUInt16(writer, rec.games);
 						WriteUInt32(writer, rec.learn);
 						last = rec;
 					}
@@ -294,13 +294,34 @@ namespace NSProgram
 
 		#region file uci
 
+		void AddUciMoves(string[] moves, bool show = false)
+		{
+			if (show)
+				Console.WriteLine("Add games");
+			for (int n = 0; n < moves.Length; n++)
+			{
+				AddUci(moves[n]);
+				if (show)
+				{
+					double pro = (n * 100.0) / moves.Length;
+					Console.Write($"\r{pro:N2} %");
+				}
+			}
+			if (show)
+				Console.WriteLine();
+		}
+
+		void AddUciMoves(List<string> moves, bool show = true)
+		{
+			AddUciMoves(moves.ToArray(), show);
+		}
+
 		bool AddFileUci(string p)
 		{
 			if (!File.Exists(p))
 				return true;
 			string[] lines = File.ReadAllLines(p);
-			foreach (string uci in lines)
-				AddUci(uci);
+			AddUciMoves(lines);
 			return true;
 		}
 
@@ -534,8 +555,8 @@ namespace NSProgram
 			{
 				if (!BmoToUmo(r.move, out string umo))
 					continue;
-				w += r.weight + 1;
-				if (CChess.random.Next(w) < r.weight)
+				w += r.games + 1;
+				if (CChess.random.Next(w) < r.games)
 					move = umo;
 			}
 			return move;
@@ -636,12 +657,12 @@ namespace NSProgram
 					Console.WriteLine("no moves found");
 				else
 				{
-					Console.WriteLine("id move  score");
+					Console.WriteLine("id move  games");
 					Console.WriteLine();
 					int i = 0;
 					foreach (CRec e in rl)
 						if (BmoToUmo(e.move, out string umo))
-							Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.weight));
+							Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.games));
 				}
 			}
 		}
@@ -656,8 +677,13 @@ namespace NSProgram
 			SaveToFile(path);
 		}
 
-		public bool SaveToFile(string p)
+		public bool SaveToFile(string p = "")
 		{
+			if (string.IsNullOrEmpty(p))
+				if (string.IsNullOrEmpty(path))
+					return false;
+				else
+					return SaveToFile(path);
 			string ext = Path.GetExtension(p).ToLower();
 			if (ext == defExt)
 				return SaveToBin(p);
@@ -671,40 +697,38 @@ namespace NSProgram
 		void Reduction()
 		{
 			for (int n = 0; n < recList.Count; n++)
-				recList[n].weight >>= 1;
+				recList[n].games >>= 1;
 		}
 
 		List<string> GetGames()
 		{
 			List<string> sl = new List<string>();
-			GetGames(string.Empty, 0, 0, 1, ref sl);
+			Console.WriteLine("Create games");
+			GetGames(string.Empty, 0, 1, ref sl);
 			Console.WriteLine();
-			Console.WriteLine($"{sl.Count:N0} games");
+			Console.WriteLine($"Found {sl.Count:N0} games");
 			sl.Sort();
 			return sl;
 		}
 
-		void GetGames(string moves, int back, double proT, double proU, ref List<string> list)
+		void GetGames(string moves, double proT, double proU, ref List<string> list)
 		{
 			bool add = true;
-			if (back < 5)
+			CRecList rl = GetMoves(moves);
+			if (rl.Count > 0)
 			{
-				CRecList rl = GetMoves(moves);
-				if (rl.Count > 0)
+				proU /= rl.Count;
+				bool wt = chess.whiteTurn;
+				for (int n = 0; n < rl.Count; n++)
 				{
-					proU /= rl.Count;
-					bool wt = chess.whiteTurn;
-					for (int n = 0; n < rl.Count; n++)
-					{
-						CRec rec = rl[n];
-						if (!string.IsNullOrEmpty(rec.umo))
-						{
-							add = false;
-							int curBack = chess.MoveBack(rec.umo, wt) ? 1 : 0;
-							double p = proT + n * proU;
-							GetGames($"{moves} {rec.umo}".Trim(), back + curBack, p, proU, ref list);
-						}
-					}
+					CRec rec = rl[n];
+					if (string.IsNullOrEmpty(rec.umo))
+						continue;
+					if (chess.MoveProgress(rec.umo, wt) < 0)
+						continue;
+					add = false;
+					double p = proT + n * proU;
+					GetGames($"{moves} {rec.umo}".Trim(), p, proU, ref list);
 				}
 			}
 			if (add)
@@ -794,6 +818,17 @@ namespace NSProgram
 		public bool IsWinner(int index, int count)
 		{
 			return (index & 1) != (count & 1);
+		}
+
+		public void Reset()
+		{
+			List<string> sl = GetGames();
+			Clear();
+			AddUciMoves(sl, true);
+			SaveToFile();
+			Console.WriteLine("File is saved");
+			Console.WriteLine("Finish");
+			Console.Beep();
 		}
 
 	}
