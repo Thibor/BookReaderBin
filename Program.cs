@@ -129,31 +129,19 @@ namespace NSProgram
 						switch (uci.tokens[1])
 						{
 							case "addfile":
-								string fn = uci.GetValue("addfile");
-								if (File.Exists(fn))
-								{
-									book.AddFile(fn);
-									book.ShowMoves(true);
-								}
-								else Console.WriteLine("File not found");
+								book.AddFile(uci.GetValue("addfile"), true);
 								break;
 							case "adduci":
-								string movesUci = uci.GetValue("adduci");
-								book.AddUci(movesUci);
+								book.AddUci(uci.GetValue("adduci"));
 								break;
 							case "clear":
-								book.Clear();
-								book.ShowMoves();
+								book.Clear(true);
 								break;
 							case "load":
-								if (!book.LoadFromFile(uci.GetValue("load")))
-									Console.WriteLine("File not found");
-								else
-									book.ShowMoves(true);
+								book.LoadFromFile(uci.GetValue("load"),true);
 								break;
 							case "save":
-								book.SaveToFile(uci.GetValue("save"));
-								Console.WriteLine("Book saved");
+								book.SaveToFile(uci.GetValue("save"),true);
 								break;
 							case "moves":
 								book.InfoMoves(uci.GetValue("moves"));

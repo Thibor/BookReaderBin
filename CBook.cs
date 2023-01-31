@@ -311,17 +311,17 @@ namespace NSProgram
 				Console.WriteLine();
 		}
 
-		void AddUciMoves(List<string> moves, bool show = true)
+		void AddUciMoves(List<string> moves, bool show = false)
 		{
 			AddUciMoves(moves.ToArray(), show);
 		}
 
-		bool AddFileUci(string p)
+		bool AddFileUci(string p, bool show = false)
 		{
 			if (!File.Exists(p))
 				return true;
 			string[] lines = File.ReadAllLines(p);
-			AddUciMoves(lines);
+			AddUciMoves(lines, show);
 			return true;
 		}
 
@@ -429,10 +429,12 @@ namespace NSProgram
 
 		#endregion file pgn
 
-		public void Clear()
+		public void Clear(bool show = true)
 		{
 			reduction = false;
 			recList.Clear();
+			if (show)
+				Console.WriteLine("Book is empty");
 		}
 
 		public int Delete(int c)
@@ -672,12 +674,7 @@ namespace NSProgram
 			InfoMoves();
 		}
 
-		public void SaveToFile()
-		{
-			SaveToFile(path);
-		}
-
-		public bool SaveToFile(string p = "")
+		public bool SaveToFile(string p = "",bool show = false)
 		{
 			if (string.IsNullOrEmpty(p))
 				if (string.IsNullOrEmpty(path))
@@ -691,6 +688,8 @@ namespace NSProgram
 				return SaveToUci(p);
 			else if (ext == ".pgn")
 				return SaveToPgn(p);
+			if(show)
+				Console.WriteLine("Book is saved");
 			return false;
 		}
 
@@ -750,8 +749,10 @@ namespace NSProgram
 			return rl;
 		}
 
-		public bool LoadFromFile(string p = "")
+		public bool LoadFromFile(string p = "",bool show = false)
 		{
+			if(show && !File.Exists(p))
+				Console.WriteLine("File not found");
 			if (String.IsNullOrEmpty(p))
 				if (String.IsNullOrEmpty(path))
 					return false;
@@ -766,15 +767,19 @@ namespace NSProgram
 			return result;
 		}
 
-		public bool AddFile(string p)
+		public bool AddFile(string p, bool show = false)
 		{
 			if (!File.Exists(p))
+			{
+				if (show)
+					Console.WriteLine("File not found");
 				return true;
+			}
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
 				return AddFileBin(p);
 			else if (ext == ".uci")
-				return AddFileUci(p);
+				return AddFileUci(p, show);
 			else if (ext == ".pgn")
 				return AddFilePgn(p);
 			return false;
