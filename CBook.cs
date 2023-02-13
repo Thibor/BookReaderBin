@@ -759,7 +759,7 @@ namespace NSProgram
 			bool result = AddFile(p);
 			stopWatch.Stop();
 			TimeSpan ts = stopWatch.Elapsed;
-			Console.WriteLine($"info string Loaded in {ts.TotalSeconds:N2} seconds");
+			Console.WriteLine($"info string {recList.Count:N0} moves loaded in {ts.TotalSeconds:N2} seconds");
 			return result;
 		}
 
