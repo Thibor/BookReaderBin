@@ -654,6 +654,7 @@ namespace NSProgram
 					Console.WriteLine("no moves found");
 				else
 				{
+					Console.WriteLine();
 					Console.WriteLine("id move  games");
 					Console.WriteLine();
 					int i = 0;

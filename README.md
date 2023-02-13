@@ -11,7 +11,7 @@ To use this program you need install  <a href="https://dotnet.microsoft.com/down
 **-w** Write new moves to the book<br/>
 **-lr** Limit maximum ply depth when Read from book (default 16) 0 means no limit<br/>
 **-lw** Limit maximum ply depth when Write to book (default 16) 0 means no limit<br/>
-**-log** Create LOG file<br/>
+**-log** create LOG file<br/>
 **-info** show additional INFOrmation<br/>
 
 ## Console commands

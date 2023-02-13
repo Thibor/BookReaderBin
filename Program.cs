@@ -153,17 +153,17 @@ namespace NSProgram
 								book.Reset();
 								break;
 							case "getoption":
-								Console.WriteLine($"option name Book file type string default book{CBook.defExt}");
-								Console.WriteLine($"option name Write type check default false");
-								Console.WriteLine($"option name Log type check default false");
-								Console.WriteLine($"option name Limit read ply type spin default {bookLimitR} min 0 max 100");
-								Console.WriteLine($"option name Limit write ply type spin default {bookLimitW} min 0 max 100");
+								Console.WriteLine($"option name book_file type string default book{CBook.defExt}");
+								Console.WriteLine($"option name write type check default false");
+								Console.WriteLine($"option name log type check default false");
+								Console.WriteLine($"option name limit_read_ply type spin default {bookLimitR} min 0 max 100");
+								Console.WriteLine($"option name limit_write_ply type spin default {bookLimitW} min 0 max 100");
 								Console.WriteLine("optionend");
 								break;
 							case "setoption":
 								switch (uci.GetValue("name", "value").ToLower())
 								{
-									case "book file":
+									case "book_file":
 										SetBookFile(uci.GetValue("value"));
 										break;
 									case "write":
@@ -172,10 +172,10 @@ namespace NSProgram
 									case "log":
 										isLog = uci.GetValue("value") == "true";
 										break;
-									case "limit read ply":
+									case "limit_read_ply":
 										bookLimitR = uci.GetInt("value");
 										break;
-									case "limit write ply":
+									case "limit_write_ply":
 										bookLimitW = uci.GetInt("value");
 										break;
 								}
