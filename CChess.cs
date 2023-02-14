@@ -270,7 +270,7 @@ namespace NSChess
 		{
 			if (string.IsNullOrEmpty(fen))
 				fen = defFen;
-			string[] chunks = fen.Split(' ');
+			string[] chunks = fen.Trim().Split();
 			if (chunks.Length < 4)
 				return false;
 			for (int n = 0; n < 64; n++)
