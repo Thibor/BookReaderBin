@@ -740,19 +740,19 @@ namespace NSProgram
 			return rl;
 		}
 
-		public bool LoadFromFile(string p = "")
+		public bool LoadFromFile(string p = "",bool show= false)
 		{
 			if (String.IsNullOrEmpty(p))
 				if (String.IsNullOrEmpty(path))
 					return false;
 				else
-					return LoadFromFile(path);
+					return LoadFromFile(path,show);
 			recList.Clear();
-			bool result = AddFileInfo(p);
+			bool result = AddFileInfo(p,show);
 			return result;
 		}
 
-		public bool AddFile(string p)
+		public bool AddFile(string p,bool show = false)
 		{
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
@@ -760,11 +760,11 @@ namespace NSProgram
 			else if (ext == ".uci")
 				return AddFileUci(p);
 			else if (ext == ".pgn")
-				return AddFilePgn(p);
+				return AddFilePgn(p,show);
 			return false;
 		}
 
-		public bool AddFileInfo(string p)
+		public bool AddFileInfo(string p,bool show = false)
 		{
 			if (!File.Exists(p))
 			{
@@ -774,7 +774,7 @@ namespace NSProgram
 			Stopwatch stopWatch = new Stopwatch();
 			stopWatch.Start();
 			int count = recList.Count;
-			bool result = AddFile(p);
+			bool result = AddFile(p,show);
 			count = recList.Count - count;
 			stopWatch.Stop();
 			TimeSpan ts = stopWatch.Elapsed;

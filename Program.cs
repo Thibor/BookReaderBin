@@ -129,7 +129,7 @@ namespace NSProgram
 						switch (uci.tokens[1])
 						{
 							case "addfile":
-								book.AddFileInfo(uci.GetValue("addfile"));
+								book.AddFileInfo(uci.GetValue("addfile"),true);
 								break;
 							case "adduci":
 								book.AddUci(uci.GetValue("adduci"));
@@ -139,7 +139,7 @@ namespace NSProgram
 								Console.WriteLine("Book is empty");
 								break;
 							case "load":
-								book.LoadFromFile(uci.GetValue("load"));
+								book.LoadFromFile(uci.GetValue("load"),true);
 								break;
 							case "save":
 								book.SaveToFile(uci.GetValue("save"));
