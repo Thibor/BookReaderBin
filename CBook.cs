@@ -218,7 +218,6 @@ namespace NSProgram
 		public const string defExt = ".bin";
 		public static CChessExt chess = new CChessExt();
 		public CRecList recList = new CRecList();
-		readonly Stopwatch stopWatch = new Stopwatch();
 
 		#region file bin
 
@@ -436,12 +435,10 @@ namespace NSProgram
 
 		#endregion file pgn
 
-		public void Clear(bool show = true)
+		public void Clear()
 		{
 			reduction = false;
 			recList.Clear();
-			if (show)
-				Console.WriteLine("Book is empty");
 		}
 
 		public int Delete(int c)
@@ -670,7 +667,7 @@ namespace NSProgram
 			InfoMoves();
 		}
 
-		public bool SaveToFile(string p = "", bool show = false)
+		public bool SaveToFile(string p = "")
 		{
 			if (string.IsNullOrEmpty(p))
 				if (string.IsNullOrEmpty(path))
@@ -684,8 +681,6 @@ namespace NSProgram
 				return SaveToUci(p);
 			else if (ext == ".pgn")
 				return SaveToPgn(p);
-			if (show)
-				Console.WriteLine("Book is saved");
 			return false;
 		}
 
@@ -745,41 +740,48 @@ namespace NSProgram
 			return rl;
 		}
 
-		public bool LoadFromFile(string p = "", bool show = false)
+		public bool LoadFromFile(string p = "")
 		{
-			if (show && !File.Exists(p))
-				Console.WriteLine("File not found");
 			if (String.IsNullOrEmpty(p))
 				if (String.IsNullOrEmpty(path))
 					return false;
 				else
 					return LoadFromFile(path);
-			stopWatch.Restart();
 			recList.Clear();
-			bool result = AddFile(p);
-			stopWatch.Stop();
-			TimeSpan ts = stopWatch.Elapsed;
-			Console.WriteLine($"info string {recList.Count:N0} moves loaded in {ts.TotalSeconds:N2} seconds");
+			bool result = AddFileInfo(p);
 			return result;
 		}
 
-		public bool AddFile(string p, bool show = false)
+		public bool AddFile(string p)
 		{
-			if (!File.Exists(p))
-			{
-				if (show)
-					Console.WriteLine("File not found");
-				return true;
-			}
 			string ext = Path.GetExtension(p);
 			if (ext == defExt)
 				return AddFileBin(p);
 			else if (ext == ".uci")
-				return AddFileUci(p, show);
+				return AddFileUci(p);
 			else if (ext == ".pgn")
 				return AddFilePgn(p);
 			return false;
 		}
+
+		public bool AddFileInfo(string p)
+		{
+			if (!File.Exists(p))
+			{
+				Console.WriteLine($"info string file {Path.GetFileName(p)} not found");
+				return true;
+			}
+			Stopwatch stopWatch = new Stopwatch();
+			stopWatch.Start();
+			int count = recList.Count;
+			bool result = AddFile(p);
+			count = recList.Count - count;
+			stopWatch.Stop();
+			TimeSpan ts = stopWatch.Elapsed;
+			Console.WriteLine($"info string {count:N0} moves added in {ts.TotalSeconds:N2} seconds");
+			return result;
+		}
+
 
 		public void AddUci(string[] moves, int plyLW = 0, bool addLose = true)
 		{
