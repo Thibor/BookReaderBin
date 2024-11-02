@@ -11,8 +11,14 @@ namespace NSProgram
         public ulong hash = 0;
         public ushort move = 0;
         public ushort games = 1;
-        public uint learn = 0;
+        public ushort win = 0;
+        public ushort loose = 0;
         public string umo = string.Empty;
+
+        public int GetGames()
+        {
+            return Math.Max(games + win - loose, 0);
+        }
     }
 
     class CRecList : List<CRec>
@@ -28,6 +34,8 @@ namespace NSProgram
                 if ((r.hash == rec.hash) && (r.move == rec.move))
                 {
                     this[index].games += rec.games;
+                    this[index].win += rec.win;
+                    this[index].loose += rec.loose;
                     return false;
                 }
                 else

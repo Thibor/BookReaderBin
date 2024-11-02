@@ -200,7 +200,7 @@ namespace NSProgram
 						chess.MakeMoves(moves);
 						if (isW && bookLoaded && String.IsNullOrEmpty(fen) && chess.Is2ToEnd(out string myMove, out string enMove))
 						{
-							book.AddUci($"{moves} {myMove} {enMove}", bookLimitW, false);
+							book.AddUci($"{moves} {myMove} {enMove}", bookLimitW);
 							book.SaveToFile();
 						}
 						break;

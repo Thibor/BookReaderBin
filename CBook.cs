@@ -239,7 +239,8 @@ namespace NSProgram
                             hash = ReadUInt64(reader),
                             move = ReadUInt16(reader),
                             games = ReadUInt16(reader),
-                            learn = ReadUInt32(reader)
+                            win = ReadUInt16(reader),
+                            loose = ReadUInt16(reader)
                         };
                         recList.Add(rec);
                         if (rec.games > ushort.MaxValue >> 1)
@@ -275,7 +276,8 @@ namespace NSProgram
                         WriteUInt64(writer, rec.hash);
                         WriteUInt16(writer, rec.move);
                         WriteUInt16(writer, rec.games);
-                        WriteUInt32(writer, rec.learn);
+                        WriteUInt16(writer, rec.win);
+                        WriteUInt16(writer, rec.loose);
                         last = rec;
                     }
                 }
@@ -561,7 +563,7 @@ namespace NSProgram
             {
                 if (!BmoToUmo(r.move, out string umo))
                     continue;
-                w += r.games + 1;
+                w += r.GetGames() + 1;
                 if (CChess.random.Next(w) < r.games)
                     move = umo;
             }
@@ -652,12 +654,12 @@ namespace NSProgram
                 else
                 {
                     Console.WriteLine();
-                    Console.WriteLine("id move  games");
+                    Console.WriteLine("id move  games    win  loose");
                     Console.WriteLine();
                     int i = 0;
                     foreach (CRec e in rl)
                         if (BmoToUmo(e.move, out string umo))
-                            Console.WriteLine(String.Format("{0,2} {1,-4} {2,6}", ++i, umo, e.games));
+                            Console.WriteLine(String.Format("{0,2} {1,-4} {2,6} {3,6} {4,6}", ++i, umo, e.games,e.win,e.loose));
                 }
             }
         }
@@ -687,7 +689,11 @@ namespace NSProgram
         void Reduction()
         {
             for (int n = 0; n < recList.Count; n++)
+            {
                 recList[n].games >>= 1;
+                recList[n].win >>= 1;
+                recList[n].loose >>= 1;
+            }
         }
 
         List<string> GetGames()
@@ -798,12 +804,15 @@ namespace NSProgram
                 bool iw = IsWinner(n, count);
                 if (iw || addLose)
                 {
-                    ushort games = iw ? (ushort)2 : (ushort)1;
+                    ushort gameW = iw ? (ushort)1 : (ushort)0;
+                    ushort gameL= iw ? (ushort)0 : (ushort)1;
                     CRec rec = new CRec
                     {
                         hash = GetHash(),
                         move = UmoToBmo(umo),
-                        games = games
+                        games = 1,
+                        win = gameW,
+                        loose = gameL
                     };
                     recList.AddRec(rec);
                 }
