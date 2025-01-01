@@ -563,8 +563,9 @@ namespace NSProgram
             {
                 if (!BmoToUmo(r.move, out string umo))
                     continue;
-                w += r.GetGames() + 1;
-                if (CChess.random.Next(w) < r.games)
+                int v = r.GetValue();
+                w += v;
+                if (CChess.random.Next(w) < v)
                     move = umo;
             }
             return move;
@@ -653,19 +654,24 @@ namespace NSProgram
                     Console.WriteLine("no moves found");
                 else
                 {
+                    string frm = "{0,6} {1,6} {2,6} {3,6} {4,6}";
                     Console.WriteLine();
-                    Console.WriteLine("id move  games    win  loose");
-                    Console.WriteLine();
+                    Console.WriteLine(frm,"id","move","games","win","loose");
                     int i = 0;
                     foreach (CRec e in rl)
                         if (BmoToUmo(e.move, out string umo))
-                            Console.WriteLine(String.Format("{0,2} {1,-4} {2,6} {3,6} {4,6}", ++i, umo, e.games,e.win,e.loose));
+                            Console.WriteLine(frm, ++i, umo, e.games,e.win,e.loose);
                 }
             }
         }
 
         public void ShowInfo()
         {
+            if (recList.Count == 0)
+            {
+                Console.WriteLine("no records");
+                return;
+            }
             InfoMoves();
         }
 
@@ -846,5 +852,5 @@ namespace NSProgram
             Console.Beep();
         }
 
-    }
+        }
 }

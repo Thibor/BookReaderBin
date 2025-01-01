@@ -15,9 +15,9 @@ namespace NSProgram
         public ushort loose = 0;
         public string umo = string.Empty;
 
-        public int GetGames()
+        public int GetValue()
         {
-            return Math.Max(games + win - loose, 0);
+            return Math.Max(games + win - loose, 1);
         }
     }
 
