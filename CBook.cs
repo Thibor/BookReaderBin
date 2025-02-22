@@ -240,7 +240,7 @@ namespace NSProgram
                             move = ReadUInt16(reader),
                             games = ReadUInt16(reader),
                             win = ReadUInt16(reader),
-                            loose = ReadUInt16(reader)
+                            lost = ReadUInt16(reader)
                         };
                         recList.Add(rec);
                         if (rec.games > ushort.MaxValue >> 1)
@@ -277,7 +277,7 @@ namespace NSProgram
                         WriteUInt16(writer, rec.move);
                         WriteUInt16(writer, rec.games);
                         WriteUInt16(writer, rec.win);
-                        WriteUInt16(writer, rec.loose);
+                        WriteUInt16(writer, rec.lost);
                         last = rec;
                     }
                 }
@@ -649,18 +649,18 @@ namespace NSProgram
             {
                 ulong hash = GetHash();
                 CRecList rl = GetRecList(hash);
-                rl.SortWeight();
+                rl.SortValue();
                 if (rl.Count == 0)
                     Console.WriteLine("no moves found");
                 else
                 {
-                    string frm = "{0,6} {1,6} {2,6} {3,6} {4,6}";
+                    string frm = "{0,6} {1,6} {2,6} {3,6} {4,6} {5,6}";
                     Console.WriteLine();
-                    Console.WriteLine(frm,"id","move","games","win","loose");
+                    Console.WriteLine(frm, "id", "move", "value", "games", "win", "lost");
                     int i = 0;
                     foreach (CRec e in rl)
                         if (BmoToUmo(e.move, out string umo))
-                            Console.WriteLine(frm, ++i, umo, e.games,e.win,e.loose);
+                            Console.WriteLine(frm, ++i, umo, e.GetValue(), e.games, e.win, e.lost);
                 }
             }
         }
@@ -698,7 +698,7 @@ namespace NSProgram
             {
                 recList[n].games >>= 1;
                 recList[n].win >>= 1;
-                recList[n].loose >>= 1;
+                recList[n].lost >>= 1;
             }
         }
 
@@ -811,14 +811,14 @@ namespace NSProgram
                 if (iw || addLose)
                 {
                     ushort gameW = iw ? (ushort)1 : (ushort)0;
-                    ushort gameL= iw ? (ushort)0 : (ushort)1;
+                    ushort gameL = iw ? (ushort)0 : (ushort)1;
                     CRec rec = new CRec
                     {
                         hash = GetHash(),
                         move = UmoToBmo(umo),
                         games = 1,
                         win = gameW,
-                        loose = gameL
+                        lost = gameL
                     };
                     recList.AddRec(rec);
                 }
@@ -852,5 +852,5 @@ namespace NSProgram
             Console.Beep();
         }
 
-        }
+    }
 }

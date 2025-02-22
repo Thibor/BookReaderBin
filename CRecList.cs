@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NSProgram
 {
@@ -12,13 +9,14 @@ namespace NSProgram
         public ushort move = 0;
         public ushort games = 1;
         public ushort win = 0;
-        public ushort loose = 0;
+        public ushort lost = 0;
         public string umo = string.Empty;
 
         public int GetValue()
         {
-            return Math.Max(games + win - loose, 1);
+            return Math.Max(games + win - lost, 1);
         }
+
     }
 
     class CRecList : List<CRec>
@@ -35,7 +33,7 @@ namespace NSProgram
                 {
                     this[index].games += rec.games;
                     this[index].win += rec.win;
-                    this[index].loose += rec.loose;
+                    this[index].lost += rec.lost;
                     return false;
                 }
                 else
@@ -59,7 +57,7 @@ namespace NSProgram
                 Clear();
             else
             {
-                SortWeight();
+                SortValue();
                 RemoveRange(Count - count, count);
                 SortHash();
             }
@@ -124,11 +122,11 @@ namespace NSProgram
             Sort(CompareHash);
         }
 
-        public void SortWeight()
+        public void SortValue()
         {
             Sort(delegate (CRec r1, CRec r2)
             {
-                return r2.games - r1.games;
+                return r2.GetValue() - r1.GetValue();
             });
         }
 
